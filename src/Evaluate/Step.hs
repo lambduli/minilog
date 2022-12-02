@@ -31,35 +31,6 @@ step state@State{ base
   = state{ goal'stack = new'goal'stack, position = pos, environment = env, backtracking'stack }
   where (new'goal'stack, pos, env) = record
 
--- -- in this equation we handle the situation
--- -- when the top'goal is to Prove a conjunction of two terms
--- -- this is done by putting two new goals at the top of the goal'stack
--- -- I also need to reset the position
--- -- which I can not do
--- -- TODO: So I really need to think this one through!
--- -- do I keep the position in the Goal?
--- -- does it ever happen that I would prove the top'goal
--- -- pop it
--- -- and need to continue proving something at the bottom that I have had
--- -- already worked on?
--- -- I am not sure.
--- -- I think this does not happen for backtracking.
--- -- Because backtracking is done using entirely different goal'stack.
--- -- So does that mean, that when I successfully prove something, I pop it from the stack,
--- -- and below it, there can only be some thing that haven't been tried to be proven yet?
--- -- It is a fresh goal.
--- -- So when I succeed with one goal and pop, I would also reset the counter?
--- -- It feels like maybe yes, I will need to think about it more.
--- step state@State{ base
---                 , backtracking'stack
---                 , goal'stack = Prove (Conjunction term'a term'b) : goal'stack
---                 , position
---                 , environment
---                 , counter }
---   = state{ goal'stack = new'goal'stack, position = 0 }
---   -- The order is important!
---   where new'goal'stack = Prove term'a : Prove term'b : goal'stack
-
 {-  PROVE CALL  -}
 step state@State{ base
                 , backtracking'stack
@@ -195,17 +166,6 @@ rename'goal state (Call (Fun{ name, args }))
 rename'goal state (Unify val'l val'r)
   = let (state', [val'l', val'r']) = mapAccumL rename state [val'l, val'r]
     in  (state', Unify val'l' val'r')
-
--- rename'term :: (Int, Map.Map String String) -> Term -> ((Int, Map.Map String String), Term)
--- rename'term state'0 (Conjunction term'l term'r) = (state'2, Conjunction term'l'1 term'r'1)
---   where
---     (state'1, term'l'1) = rename'term state'0 term'l
---     (state'2, term'r'1) = rename'term state'1 term'r
-
--- rename'term state'0 (Call fun) = (state'1, Call fun')
---   where
---     (state'1, Struct fun') = rename state'0 (Struct fun)
-
 
 
 unify :: Value -> Value -> Env -> Maybe Env
