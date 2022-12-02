@@ -3,12 +3,10 @@ module Main where
 import Data.Map.Strict qualified as Map
 
 
-import AST.Term
-import AST.Goal
-import AST.Predicate
+import Term
 
-import Evaluate.Step
-import Evaluate.State
+import Evaluate.Step ( step )
+import Evaluate.State ( State(..) )
 
 
 
@@ -20,7 +18,7 @@ init'base = [ Fact (Fun{ name = "id", args = [ Var "I", Var "I" ] })
 
 goal :: Goal
 -- goal = Prove (Call (Fun{ name = "foo", args = [ Atom "something", Var "Y" ] }))
-goal = Prove (Call (Fun{ name = "id", args = [ Var "Y", Struct (Fun{ name = "foo", args = [ Var "Y" ] }) ] }))
+goal = Call (Fun{ name = "id", args = [ Var "Y", Struct (Fun{ name = "foo", args = [ Var "Y" ] }) ] })
 
 
 init'state :: State

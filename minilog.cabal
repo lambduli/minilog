@@ -11,9 +11,7 @@ extra-doc-files: CHANGELOG.md
 
 library
     exposed-modules:
-        AST.Goal
-        AST.Predicate
-        AST.Term
+        Term
         Evaluate.State
         Evaluate.Step
 

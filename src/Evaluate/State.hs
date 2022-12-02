@@ -3,9 +3,7 @@ module Evaluate.State where
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 
-import AST.Predicate ( Predicate )
-import AST.Goal ( Goal )
-import AST.Term ( Value )
+import Term ( Goal, Value, Predicate )
 
 
 data State = State  { base :: [Predicate]
@@ -14,7 +12,7 @@ data State = State  { base :: [Predicate]
                     , goal'stack :: [Goal]
                     , position :: Int
                     , environment :: Env
-                    
+
                     , counter :: Int } -- for renaming variables
   deriving (Eq, Show)
 
