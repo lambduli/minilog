@@ -1,13 +1,13 @@
 module Evaluate.Step where
 
-import Prelude hiding ( Functor )
+import Prelude hiding ( Functor, lookup )
 
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.List ( foldl', mapAccumL )
 
 
-import Evaluate.State ( State(..), Env, Var'State(..), Action(..) )
+import Evaluate.State ( State(..), Env, lookup, Var'State(..), Action(..) )
 
 import Term ( Predicate(..), Functor(..), Value(..), Goal(..) )
 
@@ -49,7 +49,7 @@ step state@State{ base
             goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = goals ++ goal'stack
 
-            backtracking'stack' = cause'backtracking f base the'position gs environment backtracking'stack
+            backtracking'stack' = cause'backtracking f base (the'position + 1) gs environment backtracking'stack
 
             new'state =  state{ backtracking'stack = backtracking'stack'
                               , goal'stack = new'goal'stack
@@ -63,7 +63,7 @@ step state@State{ base
             head'goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = head'goals ++ body' ++ goal'stack
 
-            backtracking'stack' = cause'backtracking f base the'position gs environment backtracking'stack
+            backtracking'stack' = cause'backtracking f base (the'position + 1) gs environment backtracking'stack
 
             new'state =  state{ backtracking'stack = backtracking'stack'
                               , goal'stack = new'goal'stack
@@ -182,6 +182,9 @@ unify :: Value -> Value -> Env -> Maybe Env
 unify Wildcard _ env
   = Just env
 
+unify _ Wildcard env
+  = Just env
+
 unify (Atom a) (Atom b) env
   | a == b = Just env
   | otherwise = Nothing
@@ -215,17 +218,19 @@ unify (Var v'l) (Var v'r) env@(first, second)
                                 new'second = Map.insert addr (Fused $! Set.insert v'l vars) second -- just adds it into the set of vars
                             in  Just (new'first, new'second)
 
-                          -- TODO: occurs check!
                           Assigned val -> -- from assigned to fused'assigned
-                            let new'first = Map.insert v'l addr first -- register the fresh variable
-                                new'second = Map.insert addr (Fused'Assigned (Set.singleton v'l) val) second -- promote to fused'assigned
-                            in  Just (new'first, new'second)
+                            if occurs val v'l env
+                            then Nothing
+                            else  let new'first = Map.insert v'l addr first -- register the fresh variable
+                                      new'second = Map.insert addr (Fused'Assigned (Set.fromList [v'l, v'r]) val) second -- promote to fused'assigned
+                                  in  Just (new'first, new'second)
 
-                          -- TODO: occurs check!
                           Fused'Assigned vars val ->  -- more fusing
-                            let new'first = Map.insert v'l addr first -- register the fresh variable
-                                new'second = Map.insert addr (Fused'Assigned (Set.insert v'l vars) val) second -- add into the set
-                            in  Just (new'first, new'second)
+                            if occurs val v'l env
+                            then Nothing
+                            else  let new'first = Map.insert v'l addr first -- register the fresh variable
+                                      new'second = Map.insert addr (Fused'Assigned (Set.insert v'l vars) val) second -- add into the set
+                                  in  Just (new'first, new'second)
 
                   (True, False) ->  -- ? ~ FRESH
                     unify (Var v'r) (Var v'l) env -- a little trick
@@ -235,25 +240,34 @@ unify (Var v'l) (Var v'r) env@(first, second)
                         addr'r = first Map.! v'r
                     in  case (second Map.! addr'l, second Map.! addr'r) of
                           (Fused vars'l, Fused vars'r) ->
-                            let new'first = Map.insert v'l addr'r first
+                            let lefts = Set.toList vars'l
+                                patch = Map.fromList $! map (\ l -> (l, addr'r)) lefts
+                                new'first = Map.union patch first
                                 new'second = Map.insert addr'r (Fused $! Set.union vars'l vars'r) second
                             in  Just (new'first, new'second)
 
-                          -- TODO: occurs check! check even those fused
                           (Fused vars'l, Assigned val'r) ->
-                            let new'first = Map.insert v'l addr'r first
-                                new'second = Map.insert addr'r (Fused'Assigned vars'l val'r) second
-                            in  Just (new'first, new'second)
+                            if any (\ var -> occurs val'r var env) vars'l
+                            then Nothing
+                            else  let lefts = Set.toList vars'l
+                                      patch = Map.fromList $! map (\ l -> (l, addr'r)) lefts
+                                      new'first = Map.union patch first
+                                      new'second = Map.insert addr'r (Fused'Assigned vars'l val'r) second
+                                  in  Just (new'first, new'second)
 
-                          -- TODO: occurs check! check even those fused
                           (Fused vars'l, Fused'Assigned vars'r val'r) ->
-                            let new'first = Map.insert v'l addr'r first
-                                new'second = Map.insert addr'r (Fused'Assigned (Set.union vars'l vars'r) val'r) second
-                            in  Just (new'first, new'second)
+                            if any (\ var -> occurs val'r var env) vars'l
+                            then Nothing
+                            else  let lefts = Set.toList vars'l
+                                      patch = Map.fromList $! map (\ l -> (l, addr'r)) lefts
+                                      new'first = Map.union patch first
+                                      new'second = Map.insert addr'r (Fused'Assigned (Set.union vars'l vars'r) val'r) second
+                                  in  Just (new'first, new'second)
 
-                          -- TODO: occurs check! check both ways
                           (Assigned val'l, Assigned val'r) ->
-                            unify val'l val'r env
+                            if occurs val'l v'r env || occurs val'r v'l env
+                            then Nothing
+                            else unify val'l val'r env
                             -- NOTE: The thing is, even if it succeeds, I can't really reflect that in the Env.
                             -- Because I do not subsitute variables within structs when some variable is assigned a value,
                             -- those two things do not look alike.
@@ -261,14 +275,16 @@ unify (Var v'l) (Var v'r) env@(first, second)
                             -- Instead of just picking arbitrary one of them I do not pick at all.
                             -- But I do believe that any choice would do.
 
-                          -- TODO: occurs check! check both ways and fused too
                           (Assigned val'l, Fused'Assigned vars'r val'r) ->
-                            unify val'l val'r env
+                            if any (\ var -> occurs val'l var env) vars'r || occurs val'r v'l env
+                            then Nothing
+                            else unify val'l val'r env
                             -- the same reasoning as above
 
-                          -- TODO: occurs check! check both ways and fused too
                           (Fused'Assigned vars'l val'l, Fused'Assigned vars'r val'r) ->
-                            unify val'l val'r env
+                            if any (\ var -> occurs val'l var env) vars'r || any (\ var -> occurs val'r var env) vars'l
+                            then Nothing
+                            else unify val'l val'r env
                             -- the same reasoning as above
 
                           (_, _) -> unify (Var v'r) (Var v'l) env -- a little trick
@@ -278,22 +294,47 @@ unify (Var v'l) value env@(first, second)
     Just addr ->  -- fused, assigned, or fused'assigned
       case second Map.! addr of
         Fused vars -> -- promote to fused'assigned
-          let new'second = Map.insert addr (Fused'Assigned vars value) second
-          in  Just (first, new'second)
+          if any (\ var -> occurs value var env) vars
+          then Nothing
+          else  let new'second = Map.insert addr (Fused'Assigned vars value) second
+                in  Just (first, new'second)
 
-        -- TODO: occurs check!
         Assigned value' ->  -- unify those two values, no new binding
-          unify value value' env
+          if occurs value' v'l env
+          then Nothing
+          else unify value value' env
 
-        -- TODO: occurs check!
-        Fused'Assigned _ value' -> -- unify those two values, no new binding
-          unify value value' env
+        Fused'Assigned vars value' -> -- unify those two values, no new binding
+          if any (\ var -> occurs value' var env) vars
+          then Nothing
+          else unify value value' env
 
     Nothing ->  -- a fresh variable
-      let new'addr = Map.size second
-          new'first = Map.insert v'l new'addr first
-          new'second = Map.insert new'addr (Assigned value) second
-      in  Just (new'first, new'second)
+      if occurs value v'l env
+      then Nothing
+      else  let new'addr = Map.size second
+                new'first = Map.insert v'l new'addr first
+                new'second = Map.insert new'addr (Assigned value) second
+            in  Just (new'first, new'second)
 
 unify value (Var v'r) env
   = unify (Var v'r) value env -- a little trick
+
+unify _ _ _ = Nothing
+
+
+occurs :: Value -> String -> Env -> Bool
+occurs (Var name) var'name env
+  | name == var'name = True
+  | otherwise = case lookup name env of
+                  Nothing -> False
+                  Just (Fused vars) -> Set.member var'name vars
+                  Just (Assigned val) -> occurs val var'name env
+                  Just (Fused'Assigned vars val) -> Set.member var'name vars || occurs val var'name env
+
+occurs (Atom _) _ _ = False
+
+occurs (Struct Fun{ args }) var'name env = any (\ v -> occurs v var'name env) args
+
+occurs Wildcard _ _
+  = False
