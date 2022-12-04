@@ -8,11 +8,27 @@ import Term ( Value(..), Functor(..), Predicate(..), Goal(..) )
 import Evaluate.Step ( step )
 import Evaluate.State ( State(..), Action(..) )
 
+import Parser ( parse'base )
+
+
+
+
+small'base :: String
+small'base =  "id(I,I)." ++ "\n" ++
+              "foo(X, thing)." ++ "\n"
+
+fact'base :: String
+fact'base = "plus(z, N, N)." ++ "\n" ++
+            "plus(s(N), M, s(R)) :- plus(N, M, R)." ++ "\n" ++
+            "times(z, _, z)." ++ "\n" ++
+            "times(s(N), M, A) :- times(N, M, R), plus(R, M, A)." ++ "\n" ++
+            "fact(z, s(z))." ++ "\n" ++
+            "fact(s(N), R) :- fact(N, PR), times(s(N), PR, R)." ++ "\n"
 
 
 init'base :: [Predicate]
-init'base = [ Fact (Fun{ name = "id", args = [ Var "I", Var "I" ] })
-            , Fact (Fun{ name = "foo", args = [ Var "X", Atom "thing" ] })
+init'base = [ Fact Fun{ name = "id", args = [ Var "I", Var "I" ] }
+            , Fact Fun{ name = "foo", args = [ Var "X", Atom "thing" ] }
             ]
 
 

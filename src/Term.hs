@@ -39,7 +39,6 @@ instance Show Functor where
 
 data Value  = Var String
             | Atom String
-            | Number Int
             | Struct Functor
             | Wildcard
   deriving (Eq)
@@ -48,6 +47,5 @@ data Value  = Var String
 instance Show Value where
   show (Var name) = name
   show (Atom name) = name
-  show (Number int) = show int
   show (Struct fun) = show fun
   show Wildcard = "_"

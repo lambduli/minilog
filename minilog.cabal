@@ -1,20 +1,28 @@
-cabal-version:   3.0
-name:            minilog
-version:         0.1.0.0
-license:         MIT
-license-file:    LICENSE
-maintainer:      lambduli@gmail.com
-author:          lambduli
-category:        Language
-build-type:      Simple
-extra-doc-files: CHANGELOG.md
+cabal-version:      3.0
+name:               minilog
+version:            0.1.0.0
+license:            MIT
+license-file:       LICENSE
+maintainer:         lambduli@gmail.com
+author:             lambduli
+category:           Language
+build-type:         Simple
+extra-source-files:
+    src/Lexer.x
+    src/Parser.y
+
+extra-doc-files:    CHANGELOG.md
 
 library
     exposed-modules:
         Term
         Evaluate.State
         Evaluate.Step
+        Token
+        Lexer
+        Parser
 
+    build-tool-depends: alex:alex >=3.2.6 && <4.0, happy:happy >=1.20.0 && <2.0
     hs-source-dirs:     src
     default-language:   Haskell2010
     default-extensions: NamedFieldPuns ImportQualifiedPost
@@ -31,11 +39,11 @@ library
         utf8-string
 
 executable minilog
-    main-is:          Main.hs
-    hs-source-dirs:   app
-    default-language: Haskell2010
+    main-is:            Main.hs
+    hs-source-dirs:     app
+    default-language:   Haskell2010
     default-extensions: NamedFieldPuns ImportQualifiedPost
-    ghc-options:      -Wall
+    ghc-options:        -Wall
     build-depends:
         minilog,
         base ^>=4.17.0.0,

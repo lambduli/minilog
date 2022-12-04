@@ -186,10 +186,6 @@ unify (Atom a) (Atom b) env
   | a == b = Just env
   | otherwise = Nothing
 
-unify (Number a) (Number b) env
-  | a == b = Just env
-  | otherwise = Nothing
-
 unify (Struct (Fun{ name = name'l, args = args'l }))
       (Struct (Fun{ name = name'r, args = args'r }))
       env
