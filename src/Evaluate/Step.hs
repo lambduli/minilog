@@ -7,29 +7,32 @@ import Data.Set qualified as Set
 import Data.List ( foldl', mapAccumL )
 
 
-import Evaluate.State ( State(..), Env, Var'State(..) )
+import Evaluate.State ( State(..), Env, Var'State(..), Action(..) )
 
 import Term ( Predicate(..), Functor(..), Value(..), Goal(..) )
 
 
-step :: State -> State
--- in these two equations we handle the situation
+step :: State -> Action State
+-- In these two equations we handle the situation
 -- when in the previous step we have successfully proved the whole goal
--- that leaves us with an empty goal'stack
--- so we attempt to backtrack
--- in case there are no records on the backtracking'stack we just return the same state
+-- that leaves us with an empty goal'stack.
+-- These two equations handle the situation when no backtracking can happen (empty backtracking'stack)
+-- or if some backtracking can happen (Redoing).
+-- It's not ideal as the idea that the Action transitions from Succeede to either Done or Redoing is only in our heads.
+-- It would be much better if it could be encoded in the design so that the type system and pattern matching
+-- exhaustivity checker would have our backs, but it is what it is.
 step state@State{ backtracking'stack = []
                 , goal'stack = [] }
-  = state
+  = Done
 
-step state@State{ base
-                , backtracking'stack = record : backtracking'stack
-                , goal'stack = []
-                , position
-                , environment
-                , counter }
-  = state{ goal'stack = new'goal'stack, position = pos, environment = env, backtracking'stack }
+step state@State{ backtracking'stack = record : backtracking'stack
+                , goal'stack = [] }
+  = Redoing state'
   where (new'goal'stack, pos, env) = record
+        state' = state{ goal'stack = new'goal'stack
+                      , position = pos
+                      , environment = env
+                      , backtracking'stack }
 
 {-  PROVE CALL  -}
 step state@State{ base
@@ -46,34 +49,28 @@ step state@State{ base
             goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = goals ++ goal'stack
 
-            bt'stack = gs
-            bt'pos = the'position + 1
-            bt'env = environment
-            backtracking'record = (bt'stack, bt'pos, bt'env)
+            backtracking'stack' = cause'backtracking f base the'position gs environment backtracking'stack
 
-            new'state =  state{ backtracking'stack = backtracking'record : backtracking'stack
+            new'state =  state{ backtracking'stack = backtracking'stack'
                               , goal'stack = new'goal'stack
                               , position = 0  -- the current goal will never ever be tried again (in this goal'stack anyway)
                               , counter = counter' }
 
-        in  new'state
+        in  Searching new'state
 
       Just (Fun{ args = patterns } :- body, the'position) -> 
         let (counter', patterns', body') = rename'both patterns body counter
             head'goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = head'goals ++ body' ++ goal'stack
 
-            bt'stack = gs
-            bt'pos = the'position + 1
-            bt'env = environment
-            backtracking'record = (bt'stack, bt'pos, bt'env)
+            backtracking'stack' = cause'backtracking f base the'position gs environment backtracking'stack
 
-            new'state =  state{ backtracking'stack = backtracking'record : backtracking'stack
+            new'state =  state{ backtracking'stack = backtracking'stack'
                               , goal'stack = new'goal'stack
                               , position = 0  -- the current goal will never ever be tried again
                               , counter = counter' }
 
-        in  new'state
+        in  Searching new'state
 
   where look'for :: Functor -> [Predicate] -> Int -> Maybe (Predicate, Int)
         look'for _ [] _ = Nothing
@@ -87,10 +84,16 @@ step state@State{ base
           | name == name' && length args == length args' = Just (rule, pos)
           | otherwise = look'for f base (pos + 1)
 
--- in this equation we handle the situation
--- when the goal is to Unify two Values
--- the unification function will take care of that
--- the unification can possibly change the environment
+
+        cause'backtracking :: Functor -> [Predicate] -> Int -> [Goal] -> Env -> [([Goal], Int, Env)] -> [([Goal], Int, Env)]
+        cause'backtracking f base position goal'stack env backtracking'stack
+          = case look'for f (drop position base) position of
+              Nothing -> backtracking'stack
+              Just (_, future'position) ->
+                let backtracking'record = (goal'stack, future'position, env)
+                in  backtracking'record : backtracking'stack
+
+{-  PROVE UNIFICATION -}
 step state@State{ base
                 , backtracking'stack
                 , goal'stack = Unify value'l value'r : goal'stack
@@ -105,18 +108,25 @@ step state@State{ base
       Just new'env ->
         -- they can be unified and the new'environment reflects that
         -- just return a new state with stack and env changed
-        state { goal'stack
-              , environment = new'env }
+        succeed state { goal'stack
+                      , environment = new'env }
 
 
--- the following function fails the current goal
--- it needs to replace the current goal'stack with a top of the backtracking one
--- that means re-setting position and environment
--- counter stays the same (because it can)
--- 
-fail'and'backtrack :: State -> State
+succeed :: State -> Action State
+succeed state@State{ goal'stack = [] }
+  = Succeeded state
+
+succeed state
+  = Searching state
+
+
+-- The following function fails the current goal.
+-- It needs to replace the current goal'stack with a top of the backtracking one.
+-- That means re-setting the position and the environment.
+-- The counter stays the same (because it only increments).
+fail'and'backtrack :: State -> Action State
 fail'and'backtrack state@State{ backtracking'stack = [] }
-  = state{ goal'stack = [] }
+  = Failed
 
 fail'and'backtrack state@State{ backtracking'stack = backtrack'record : backtracking'stack }
   = step state{ backtracking'stack
@@ -129,11 +139,11 @@ fail'and'backtrack state@State{ backtracking'stack = backtrack'record : backtrac
 rename'all :: [Value] -> Int -> (Int, [Value])
 rename'all patterns counter = (counter', patterns')
   where
-    ((counter', mapping), patterns') = mapAccumL rename (counter, Map.empty) patterns
+    ((counter', mapping), patterns') = mapAccumL rename'val (counter, Map.empty) patterns
 
 
-rename :: (Int, Map.Map String String) -> Value -> ((Int, Map.Map String String), Value)
-rename (cntr, mapping) (Var name)
+rename'val :: (Int, Map.Map String String) -> Value -> ((Int, Map.Map String String), Value)
+rename'val (cntr, mapping) (Var name)
   = if Map.member name mapping
     then ((cntr, mapping), Var (mapping Map.! name))
     else  let new'name = "_" ++ show cntr
@@ -141,18 +151,18 @@ rename (cntr, mapping) (Var name)
               new'mapping = Map.insert name new'name mapping
           in  ((new'cntr, new'mapping), Var new'name)
 
-rename state (Struct (Fun{ name, args }))
-  = let (state', args') = mapAccumL rename state args
+rename'val state (Struct (Fun{ name, args }))
+  = let (state', args') = mapAccumL rename'val state args
     in  (state', Struct (Fun{ name = name, args = args' }))
 
-rename acc val
+rename'val acc val
   = (acc, val)
 
 
 rename'both :: [Value] -> [Goal] -> Int -> (Int, [Value], [Goal])
 rename'both patterns goals counter = (counter', patterns', goals')
   where
-    (state, patterns') = mapAccumL rename (counter, Map.empty) patterns
+    (state, patterns') = mapAccumL rename'val (counter, Map.empty) patterns
 
     (state', goals') = mapAccumL rename'goal state goals
 
@@ -161,10 +171,10 @@ rename'both patterns goals counter = (counter', patterns', goals')
 
 rename'goal :: (Int, Map.Map String String) -> Goal -> ((Int, Map.Map String String), Goal)
 rename'goal state (Call (Fun{ name, args }))
-  = let (state', args') = mapAccumL rename state args
+  = let (state', args') = mapAccumL rename'val state args
     in  (state', Call (Fun{ name, args = args' }))
 rename'goal state (Unify val'l val'r)
-  = let (state', [val'l', val'r']) = mapAccumL rename state [val'l, val'r]
+  = let (state', [val'l', val'r']) = mapAccumL rename'val state [val'l, val'r]
     in  (state', Unify val'l' val'r')
 
 
