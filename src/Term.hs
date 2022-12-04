@@ -6,7 +6,12 @@ import Data.List ( intercalate )
 
 data Goal = Call Functor
           | Unify Value Value
-  deriving (Eq, Show)
+  deriving (Eq)
+
+
+instance Show Goal where
+  show (Call fun) = show fun
+  show (Unify val'l val'r) = show val'l ++ " = " ++ show val'r
 
 
 data Predicate  = Fact Functor
@@ -15,7 +20,7 @@ data Predicate  = Fact Functor
 
 instance Show Predicate where
   show (Fact fun) = show fun ++ "."
-  show (head :- body) = show head ++ " :- " ++ show body ++ "."
+  show (head :- body) = show head ++ " :- " ++ intercalate " , " (map show body) ++ "."
 
 
 -- arguments can only be things that are patterns
@@ -25,16 +30,6 @@ data Functor = Fun{ name :: String, args :: [Value] }
 
 instance Show Functor where
   show Fun{ name, args } = name ++ "(" ++ intercalate ", " (map show args) ++ ")"
-
--- TODO: Consider deleting the Term
--- data Term = Conjunction Term Term
---           | Call Functor
---           -- | Unify'Op Value Value -- not necessary, strictly speaking
---   deriving (Eq)
-
--- instance Show Term where
---   show (Conjunction term'a term'b) = show term'a ++ " , " ++ show term'b
---   show (Call fun) = show fun
 
 
 data Value  = Var String

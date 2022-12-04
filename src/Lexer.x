@@ -44,6 +44,8 @@ $space+                 ;
 
 ")"                     { \_ -> token Token.Paren'Close }
 
+"_"                     { \_ -> token Token.Underscore }
+
 @variableident          { emit Token.Var }
 
 @atomident              { emit Token.Atom }
@@ -108,10 +110,6 @@ get'line'no = gets (ai'line'no . lexer'input)
 
 get'col'no :: Lexer Int
 get'col'no = gets (ai'col'no . lexer'input)
-
-
-
-
 
 
 use'lexer :: Lexer Token -> String -> [Token]

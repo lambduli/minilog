@@ -1,5 +1,5 @@
 {
-module Parser ( parse'base ) where
+module Parser ( parse'base, parse'query ) where
 
 import Prelude hiding ( Functor )
 
@@ -10,9 +10,6 @@ import Lexer ( lexer, eval'parser, Lexer(..) )
 import Token ( Token )
 import Token qualified as Token
 import Term ( Value(..), Functor(..), Predicate(..), Goal(..) )
-
-
-import Debug.Trace (traceM)
 
 }
 
@@ -89,6 +86,10 @@ Goal          ::  { Goal }
 
 parse'base :: String -> [Predicate]
 parse'base source = eval'parser parseBase source
+
+
+parse'query :: String -> [Goal]
+parse'query source = eval'parser parseBody source
 
 
 parseError _ = do
