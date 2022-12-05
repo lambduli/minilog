@@ -31,6 +31,20 @@ data State
   deriving (Eq, Show)
 
 
+-- TODO: A new state representation that encodes:
+-- Processing a current goal'stack
+-- Succeeded - does not contain the goal'stack (I think)
+-- Failed - does not contain the goal'stack (might be interesting to think about how to represent what failed and why)
+-- 
+-- The main idea is that there is no Redoing and Done
+-- and also the goal'stack is NonEmpty
+-- this eliminates the need foor those two equations in `step`
+-- because this book keeping will be done in a different function
+-- a function that takes a state like Succeeded, one that does not contain a goal'stack
+-- and either populates the goal'stack for Processing/Searching or decides that it is Done.
+-- This seems like more sensible approach.
+
+
 type Env = (Map.Map String Int, Map.Map Int Var'State)
 
 lookup :: String -> Env -> Maybe Var'State
