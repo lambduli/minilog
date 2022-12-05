@@ -1,10 +1,10 @@
 module Evaluate.Step where
 
-import Prelude hiding ( Functor, lookup )
+import Prelude hiding ( Functor )
 
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
-import Data.List ( foldl', mapAccumL )
+import Data.List ( mapAccumL )
 
 
 import Evaluate.State ( State(..), Action(..) )

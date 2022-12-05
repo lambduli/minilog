@@ -1,5 +1,12 @@
 # minilog
 
+## TODO:
+- [ ] refactor State + Action for more type safety
+- [ ] implement serialization of the assignments
+- [ ] finish REPL
+- [ ] experiment with strictness annotations
+
+
 fact 7
 
 Using my "lazy" approach:
