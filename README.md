@@ -2,13 +2,15 @@
 
 fact 7
 
+Using my "lazy" approach:
+
 - 2:01.30
 - 2:01.41
 - 2:00.52
 - 2:02.62
 - 2:00.52
 
-I think this is enough.
+Using Martelli's unification algo:
 
 - 28.762
 - 26.021
