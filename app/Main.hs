@@ -50,12 +50,10 @@ fact'goal = parse'query "fact(s(s(s(s(s(s(s(z))))))), F)." -- fact 7
 
 init'state :: [Goal] -> State
 init'state goals =  State { base = fact'base
-                          , vars = free'vars'in'query goals
+                          , query'vars = Map.fromList q'vars
                           , backtracking'stack = []
                           , goal'stack = goals
                           , position = 0
-                          -- , environment = (Map.empty, Map.empty)
-                          , query'vars = Map.fromList q'vars
                           , counter = 0 }
   where
     free'names :: [String]

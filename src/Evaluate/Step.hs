@@ -7,7 +7,7 @@ import Data.Set qualified as Set
 import Data.List ( foldl', mapAccumL )
 
 
-import Evaluate.State ( State(..), Env, lookup, Var'State(..), Action(..) )
+import Evaluate.State ( State(..), Action(..) )
 
 import Term ( Predicate(..), Functor(..), Value(..), Goal(..) )
 
@@ -100,7 +100,6 @@ step state@State{ base
                 , backtracking'stack
                 , goal'stack = Unify value'l value'r : goal'stack
                 , position
-                -- , environment
                 , query'vars
                 , counter }
   = case unify (value'l, value'r) goal'stack query'vars of
@@ -135,7 +134,6 @@ fail'and'backtrack state@State{ backtracking'stack = backtrack'record : backtrac
               , goal'stack = new'goal'stack
               , position = pos
               , query'vars = q'vars
-              -- , environment = env
                }
   where (new'goal'stack, pos, q'vars) = backtrack'record
 
