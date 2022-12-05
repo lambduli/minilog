@@ -1,47 +1,45 @@
 module Term where
 
-import Prelude hiding ( Functor )
-
 import Data.List ( intercalate )
 
 
-data Goal = Call Functor
-          | Unify Value Value
+data Goal = Call Struct
+          | Unify Term Term
   deriving (Eq)
 
 
-data Predicate  = Fact Functor
-                | Functor :- [Goal]
+data Predicate  = Fact Struct
+                | Struct :- [Goal]
   deriving (Eq)
 
 
-data Functor = Fun{ name :: String, args :: [Value] }
+data Struct = Struct{ name :: String, args :: [Term] }
   deriving (Eq)
 
 
-data Value  = Var String
-            | Atom String
-            | Struct Functor
-            | Wildcard
+data Term = Var String
+          | Atom String
+          | Compound Struct
+          | Wildcard
   deriving (Eq)
 
 
 instance Show Goal where
-  show (Call fun) = show fun
+  show (Call struct) = show struct
   show (Unify val'l val'r) = show val'l ++ " = " ++ show val'r
 
 
 instance Show Predicate where
-  show (Fact fun) = show fun ++ "."
+  show (Fact struct) = show struct ++ "."
   show (head :- body) = show head ++ " :- " ++ intercalate " , " (map show body) ++ "."
 
 
-instance Show Functor where
-  show Fun{ name, args } = name ++ "(" ++ intercalate ", " (map show args) ++ ")"
+instance Show Struct where
+  show Struct{ name, args } = name ++ "(" ++ intercalate ", " (map show args) ++ ")"
 
 
-instance Show Value where
+instance Show Term where
   show (Var name) = name
   show (Atom name) = name
-  show (Struct fun) = show fun
+  show (Compound struct) = show struct
   show Wildcard = "_"

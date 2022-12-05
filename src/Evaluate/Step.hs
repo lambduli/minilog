@@ -1,7 +1,5 @@
 module Evaluate.Step where
 
-import Prelude hiding ( Functor )
-
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.List ( mapAccumL )
@@ -9,7 +7,7 @@ import Data.List ( mapAccumL )
 
 import Evaluate.State ( State(..), Action(..) )
 
-import Term ( Predicate(..), Functor(..), Value(..), Goal(..) )
+import Term ( Predicate(..), Struct(..), Term(..), Goal(..) )
 
 
 step :: State -> Action State
@@ -38,7 +36,7 @@ step state@State{ backtracking'stack = record : backtracking'stack
 {-  PROVE CALL  -}
 step state@State{ base
                 , backtracking'stack
-                , goal'stack = gs@(Call (f@Fun{ name, args }) : goal'stack)
+                , goal'stack = gs@(Call (f@Struct{ name, args }) : goal'stack)
                 , position
                 , query'vars
                 -- , environment
@@ -46,7 +44,7 @@ step state@State{ base
   = case look'for f (drop position base) position of
       Nothing -> fail'and'backtrack state
 
-      Just (Fact (Fun{ args = patterns }), the'position) ->
+      Just (Fact (Struct{ args = patterns }), the'position) ->
         let (counter', patterns') = rename'all patterns counter
             goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = goals ++ goal'stack
@@ -60,7 +58,7 @@ step state@State{ base
 
         in  Searching new'state
 
-      Just (Fun{ args = patterns } :- body, the'position) -> 
+      Just (Struct{ args = patterns } :- body, the'position) -> 
         let (counter', patterns', body') = rename'both patterns body counter
             head'goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = head'goals ++ body' ++ goal'stack
@@ -74,20 +72,20 @@ step state@State{ base
 
         in  Searching new'state
 
-  where look'for :: Functor -> [Predicate] -> Int -> Maybe (Predicate, Int)
+  where look'for :: Struct -> [Predicate] -> Int -> Maybe (Predicate, Int)
         look'for _ [] _ = Nothing
         -- a fact with the same name and arity
-        look'for f@Fun{ name, args } (fact@(Fact (Fun{ name = name', args = args' })) : base) pos
+        look'for f@Struct{ name, args } (fact@(Fact (Struct{ name = name', args = args' })) : base) pos
           | name == name' && length args == length args' = Just (fact, pos)
           | otherwise = look'for f base (pos + 1)
-        -- | Functor :- Term
+        -- | Struct :- Term
         -- a rule with the same name and arity
-        look'for f@Fun{ name, args } (rule@(Fun{ name = name', args = args' } :- body) : base) pos
+        look'for f@Struct{ name, args } (rule@(Struct{ name = name', args = args' } :- body) : base) pos
           | name == name' && length args == length args' = Just (rule, pos)
           | otherwise = look'for f base (pos + 1)
 
 
-        cause'backtracking :: Functor -> [Predicate] -> Int -> [Goal] -> Map.Map String Value -> [([Goal], Int, Map.Map String Value)] -> [([Goal], Int, Map.Map String Value)]
+        cause'backtracking :: Struct -> [Predicate] -> Int -> [Goal] -> Map.Map String Term -> [([Goal], Int, Map.Map String Term)] -> [([Goal], Int, Map.Map String Term)]
         cause'backtracking f base position goal'stack q'vars backtracking'stack
           = case look'for f (drop position base) position of
               Nothing -> backtracking'stack
@@ -138,13 +136,13 @@ fail'and'backtrack state@State{ backtracking'stack = backtrack'record : backtrac
   where (new'goal'stack, pos, q'vars) = backtrack'record
 
 
-rename'all :: [Value] -> Int -> (Int, [Value])
+rename'all :: [Term] -> Int -> (Int, [Term])
 rename'all patterns counter = (counter', patterns')
   where
     ((counter', mapping), patterns') = mapAccumL rename'val (counter, Map.empty) patterns
 
 
-rename'val :: (Int, Map.Map String String) -> Value -> ((Int, Map.Map String String), Value)
+rename'val :: (Int, Map.Map String String) -> Term -> ((Int, Map.Map String String), Term)
 rename'val (cntr, mapping) (Var name)
   = if Map.member name mapping
     then ((cntr, mapping), Var (mapping Map.! name))
@@ -153,15 +151,15 @@ rename'val (cntr, mapping) (Var name)
               new'mapping = Map.insert name new'name mapping
           in  ((new'cntr, new'mapping), Var new'name)
 
-rename'val state (Struct (Fun{ name, args }))
+rename'val state (Compound (Struct{ name, args }))
   = let (state', args') = mapAccumL rename'val state args
-    in  (state', Struct (Fun{ name = name, args = args' }))
+    in  (state', Compound (Struct{ name = name, args = args' }))
 
 rename'val acc val
   = (acc, val)
 
 
-rename'both :: [Value] -> [Goal] -> Int -> (Int, [Value], [Goal])
+rename'both :: [Term] -> [Goal] -> Int -> (Int, [Term], [Goal])
 rename'both patterns goals counter = (counter', patterns', goals')
   where
     (state, patterns') = mapAccumL rename'val (counter, Map.empty) patterns
@@ -172,15 +170,15 @@ rename'both patterns goals counter = (counter', patterns', goals')
 
 
 rename'goal :: (Int, Map.Map String String) -> Goal -> ((Int, Map.Map String String), Goal)
-rename'goal state (Call (Fun{ name, args }))
+rename'goal state (Call (Struct{ name, args }))
   = let (state', args') = mapAccumL rename'val state args
-    in  (state', Call (Fun{ name, args = args' }))
+    in  (state', Call (Struct{ name, args = args' }))
 rename'goal state (Unify val'l val'r)
   = let (state', [val'l', val'r']) = mapAccumL rename'val state [val'l, val'r]
     in  (state', Unify val'l' val'r')
 
 
-unify :: (Value, Value) -> [Goal] -> Map.Map String Value -> Maybe ([Goal], Map.Map String Value)
+unify :: (Term, Term) -> [Goal] -> Map.Map String Term -> Maybe ([Goal], Map.Map String Term)
 {-  DELETE  (basically) -}
 unify (Wildcard, _) goals query'vars = Just (goals, query'vars)
 unify (_, Wildcard) goals query'vars = Just (goals, query'vars)
@@ -191,8 +189,8 @@ unify (Atom a, Atom b) goals query'vars
   | otherwise = Nothing
 
 {-  DECOMPOSE + CONFLICT  -}
-unify ( Struct Fun{ name = name'a, args = args'a }
-      , Struct Fun{ name = name'b, args = args'b })
+unify ( Compound Struct{ name = name'a, args = args'a }
+      , Compound Struct{ name = name'b, args = args'b })
       goals query'vars
   | name'a /= name'b || length args'a /= length args'b = Nothing  -- CONFLICT
   | otherwise = Just (arg'goals ++ goals, query'vars)             -- DECOMPOSE
@@ -209,23 +207,23 @@ unify (Var a, value) goals query'vars
     substituted'goals = map (subst'goal (a, value)) goals
     substituted'query'vars = Map.map (subst'val (a, value)) query'vars
 
-    subst'goal :: (String, Value) -> Goal -> Goal
+    subst'goal :: (String, Term) -> Goal -> Goal
     subst'goal substitution (Call fun) = Call substituted'fun
       where substituted'fun = subst'functor substitution fun
     subst'goal substitution (Unify val'a val'b) = Unify substituted'val'a substituted'val'b
       where substituted'val'a = subst'val substitution val'a
             substituted'val'b = subst'val substitution val'b
 
-    subst'val :: (String, Value) -> Value -> Value
+    subst'val :: (String, Term) -> Term -> Term
     subst'val (from, to) (Var name)
       | name == from = to
       | otherwise = Var name
     subst'val _ (Atom name) = Atom name
-    subst'val substitution (Struct fun) = Struct (subst'functor substitution fun)
+    subst'val substitution (Compound fun) = Compound (subst'functor substitution fun)
     subst'val _ Wildcard = Wildcard
 
-    subst'functor :: (String, Value) -> Functor -> Functor
-    subst'functor substitution Fun{ name, args } = Fun{ name, args = substituted'args }
+    subst'functor :: (String, Term) -> Struct -> Struct
+    subst'functor substitution Struct{ name, args } = Struct{ name, args = substituted'args }
       where substituted'args = map (subst'val substitution) args
 
 {-  SWAP  (because of the above equation, we assume the `value` not being a variable) -}
@@ -234,8 +232,8 @@ unify (value, Var b) goals query'vars = unify (Var b, value) goals query'vars
 unify _ _ _ = Nothing   -- CONFLICT (for atoms and structs)
 
 
-occurs :: String -> Value -> Bool
+occurs :: String -> Term -> Bool
 occurs var'name (Var name) = var'name == name
 occurs var'name (Atom _) = False
-occurs var'name (Struct Fun{ args }) = any (occurs var'name) args
+occurs var'name (Compound Struct{ args }) = any (occurs var'name) args
 occurs var'name Wildcard = False

@@ -1,15 +1,13 @@
 {
 module Parser ( parse'base, parse'query ) where
 
-import Prelude hiding ( Functor )
-
-import Control.Monad.Error hiding ( Functor )
-import Control.Monad.State hiding ( Functor )
+import Control.Monad.Error
+import Control.Monad.State
 
 import Lexer ( lexer, eval'parser, Lexer(..) )
 import Token ( Token )
 import Token qualified as Token
-import Term ( Value(..), Functor(..), Predicate(..), Goal(..) )
+import Term ( Term(..), Struct(..), Predicate(..), Goal(..) )
 
 }
 
@@ -50,26 +48,26 @@ Predicates    ::  { [Predicate] }
 
 
 Predicate     ::  { Predicate }
-              :   Functor '.'               { Fact $1 }
-              |   Functor ':-' Body         { $1 :- $3 }
+              :   Struct '.'               { Fact $1 }
+              |   Struct ':-' Body         { $1 :- $3 }
 
 
 Body          ::  { [Goal] }
               :   Goals '.'                 { $1 }
 
 
-Functor       ::  { Functor }
-              :   ATOM '(' Patterns ')'     { Fun{ name = $1, args = $3 } }
+Struct       ::  { Struct }
+              :   ATOM '(' Terms ')'        { Struct{ name = $1, args = $3 } }
 
 
-Patterns      ::  { [Value] }
-              :   Pattern                   { [ $1 ] }
-              |   Pattern ',' Patterns      { $1 : $3 }
+Terms      ::  { [Term] }
+              :   Term                      { [ $1 ] }
+              |   Term ',' Terms            { $1 : $3 }
 
-Pattern       ::  { Value }
+Term       ::  { Term }
               :   VAR                       { Var $1 }
               |   ATOM                      { Atom $1 }
-              |   Functor                   { Struct $1 }
+              |   Struct                    { Compound $1 }
               |   '_'                       { Wildcard }
 
 
@@ -79,8 +77,8 @@ Goals         ::  { [Goal] }
 
 
 Goal          ::  { Goal }
-              :   Functor                   { Call $1 }
-              |   Pattern '=' Pattern       { Unify $1 $3 }
+              :   Struct                    { Call $1 }
+              |   Term '=' Term             { Unify $1 $3 }
 
 {
 

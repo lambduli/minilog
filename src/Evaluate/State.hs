@@ -3,7 +3,7 @@ module Evaluate.State where
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 
-import Term ( Goal, Value, Predicate )
+import Term ( Goal, Term, Predicate )
 
 
 {-  The Action data structure is there
@@ -18,8 +18,8 @@ data Action a = Succeeded a
 -- TODO: Keep the original goal around.
 data State
   = State { base :: [Predicate] -- knowledge base
-          , query'vars :: Map.Map String Value  -- the variables from the query
-          , backtracking'stack :: [([Goal], Int, Map.Map String Value)]
+          , query'vars :: Map.Map String Term  -- the variables from the query
+          , backtracking'stack :: [([Goal], Int, Map.Map String Term)]
             -- a stack of things to try when the current
             -- goal fails or succeeds
 

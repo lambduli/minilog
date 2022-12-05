@@ -1,7 +1,5 @@
 module Main where
 
-import Prelude hiding ( Functor )
-
 import Data.List ( foldl', intercalate )
 import Data.List.Extra ( trim )
 
@@ -11,7 +9,7 @@ import Data.Set qualified as Set
 import System.IO ( hFlush, stdout, openFile, IOMode(ReadMode), hGetContents )
 
 
-import Term ( Value(..), Functor(..), Predicate(..), Goal(..) )
+import Term ( Term(..), Struct(..), Predicate(..), Goal(..) )
 
 import Evaluate.Step ( step )
 import Evaluate.State ( State(..), Action(..) )
@@ -140,12 +138,12 @@ free'vars'in'goal (Call fun) = free'vars'in'functor fun
 free'vars'in'goal (Unify val'l val'r) = Set.union (free'vars'in'val val'l) (free'vars'in'val val'r)
 
 
-free'vars'in'functor :: Functor -> Set.Set String
-free'vars'in'functor Fun{ args } = foldl' (\ set g -> set `Set.union` free'vars'in'val g) Set.empty args
+free'vars'in'functor :: Struct -> Set.Set String
+free'vars'in'functor Struct{ args } = foldl' (\ set g -> set `Set.union` free'vars'in'val g) Set.empty args
 
 
-free'vars'in'val :: Value -> Set.Set String
+free'vars'in'val :: Term -> Set.Set String
 free'vars'in'val (Var name) = Set.singleton name
-free'vars'in'val (Atom name) = Set.empty
-free'vars'in'val (Struct fun) = free'vars'in'functor fun
+free'vars'in'val (Atom _) = Set.empty
+free'vars'in'val (Compound fun) = free'vars'in'functor fun
 free'vars'in'val Wildcard = Set.empty
