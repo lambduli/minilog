@@ -2,8 +2,8 @@
 
 ## TODO:
 - [ ] refactor State + Action for more type safety
-- [ ] implement serialization of the assignments
-- [ ] finish REPL
+- [x] implement serialization of the assignments
+- [x] (somewhat) finish REPL
 - [ ] experiment with strictness annotations
 
 

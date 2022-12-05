@@ -47,4 +47,5 @@ executable minilog
     build-depends:
         minilog,
         base ^>=4.17.0.0,
-        containers >=0.6.2.1
+        containers >=0.6.2.1,
+        extra >=1.7.12
