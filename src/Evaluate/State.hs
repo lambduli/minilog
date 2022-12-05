@@ -19,13 +19,14 @@ data Action a = Succeeded a
 data State
   = State { base :: [Predicate] -- knowledge base
           , vars :: Set.Set String  -- variables fro the query
-          , backtracking'stack :: [([Goal], Int, Env)]
+          , backtracking'stack :: [([Goal], Int, Map.Map String Value)]
             -- a stack of things to try when the current
             -- goal gails or succeeds
 
           , goal'stack :: [Goal]  -- goals to satisfy
           , position :: Int -- position in the base
-          , environment :: Env  -- the unification structure
+          -- , environment :: Env  -- the unification structure
+          , query'vars :: Map.Map String Value  -- the variables from the query
 
           , counter :: Int } -- for renaming variables
   deriving (Eq, Show)

@@ -1,6 +1,11 @@
 module Main where
 
+import Prelude hiding ( Functor )
+
+import Data.List ( foldl', concatMap, intercalate )
+
 import Data.Map.Strict qualified as Map
+import Data.Set qualified as Set
 
 
 import System.IO ( hFlush, stdout )
@@ -11,10 +16,6 @@ import Evaluate.Step ( step )
 import Evaluate.State ( State(..), Action(..) )
 
 import Parser ( parse'base, parse'query )
-
-import Visualize
-
-
 
 
 small'base :: String
@@ -41,6 +42,11 @@ goal :: Goal
 -- goal = Prove (Call (Fun{ name = "foo", args = [ Atom "something", Var "Y" ] }))
 goal = Call (Fun{ name = "id", args = [ Var "Y", Struct (Fun{ name = "foo", args = [ Var "Y" ] }) ] })
 
+fact'goal :: [Goal]
+fact'goal = parse'query "fact(s(s(s(s(s(s(s(z))))))), F)." -- fact 7
+-- fact'goal = parse'query "fact(s(s(s(s(s(s(s(s(z)))))))), F)." -- fact 8 -- this is toooooo much!
+-- fact'goal = parse'query "fact(s(s(s(s(s(z))))), F)." -- fact 5
+
 
 init'state :: [Goal] -> State
 init'state goals =  State { base = fact'base
@@ -48,20 +54,37 @@ init'state goals =  State { base = fact'base
                           , backtracking'stack = []
                           , goal'stack = goals
                           , position = 0
-                          , environment = (Map.empty, Map.empty)
+                          -- , environment = (Map.empty, Map.empty)
+                          , query'vars = Map.fromList q'vars
                           , counter = 0 }
+  where
+    free'names :: [String]
+    free'names = Set.toList (free'vars'in'query goals)
+
+    free'vars = map Var free'names
+
+    q'vars = zip free'names free'vars
 
 
 main :: IO ()
 main = do
-  putStrLn "Minolog - implementation of simple logic programming language."
-  putStr "?- "
-  hFlush stdout
-  str <- getLine
-  let goals = parse'query str
+  -- putStrLn "Minolog - implementation of simple logic programming language."
+  -- putStr "?- "
+  -- hFlush stdout
+  -- str <- getLine
+  let goals = fact'goal
       state = init'state goals
   try'to'prove state
   putStrLn "Bye!"
+-- main = do
+--   putStrLn "Minolog - implementation of simple logic programming language."
+--   putStr "?- "
+--   hFlush stdout
+--   str <- getLine
+--   let goals = parse'query str
+--       state = init'state goals
+--   try'to'prove state
+--   putStrLn "Bye!"
 
 
 try'to'prove :: State -> IO ()
@@ -70,18 +93,20 @@ try'to'prove state = do
     Succeeded s -> do
       case step s of
         Redoing state' -> do
-          -- putStrLn "Success and redoing"
+          putStrLn "Success and redoing"
+          print $! query'vars s
           -- print $! environment s
-          putStrLn (show'assignments s)
+          -- putStrLn (show'assignments s)
           -- ask user if they want to backtrack, if yes, then ->
           -- putStrLn ";"
-          getLine
-          try'to'prove state'
+          -- getLine
+          -- try'to'prove state'
           -- if no, then -> putStrLn "."
 
         Done -> do
           putStrLn "Success and done"
-          putStrLn $! (show'assignments s) ++ "."
+          print $! query'vars s
+          -- putStrLn $! (show'assignments s) ++ "."
 
         _ -> error "should never happen"
 
@@ -111,3 +136,23 @@ try'to'prove state = do
       try'to'prove s
 
     _ -> error "should never happen"
+
+
+free'vars'in'query :: [Goal] -> Set.Set String
+free'vars'in'query goals = foldl' (\ set g -> set `Set.union` free'vars'in'goal g) Set.empty goals
+
+
+free'vars'in'goal :: Goal -> Set.Set String
+free'vars'in'goal (Call fun) = free'vars'in'functor fun
+free'vars'in'goal (Unify val'l val'r) = Set.union (free'vars'in'val val'l) (free'vars'in'val val'r)
+
+
+free'vars'in'functor :: Functor -> Set.Set String
+free'vars'in'functor Fun{ args } = foldl' (\ set g -> set `Set.union` free'vars'in'val g) Set.empty args
+
+
+free'vars'in'val :: Value -> Set.Set String
+free'vars'in'val (Var name) = Set.singleton name
+free'vars'in'val (Atom name) = Set.empty
+free'vars'in'val (Struct fun) = free'vars'in'functor fun
+free'vars'in'val Wildcard = Set.empty

@@ -28,10 +28,11 @@ step state@State{ backtracking'stack = []
 step state@State{ backtracking'stack = record : backtracking'stack
                 , goal'stack = [] }
   = Redoing state'
-  where (new'goal'stack, pos, env) = record
+  where (new'goal'stack, pos, q'vars) = record
         state' = state{ goal'stack = new'goal'stack
                       , position = pos
-                      , environment = env
+                      , query'vars = q'vars
+                      -- , environment = env
                       , backtracking'stack }
 
 {-  PROVE CALL  -}
@@ -39,7 +40,8 @@ step state@State{ base
                 , backtracking'stack
                 , goal'stack = gs@(Call (f@Fun{ name, args }) : goal'stack)
                 , position
-                , environment
+                , query'vars
+                -- , environment
                 , counter }
   = case look'for f (drop position base) position of
       Nothing -> fail'and'backtrack state
@@ -49,7 +51,7 @@ step state@State{ base
             goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = goals ++ goal'stack
 
-            backtracking'stack' = cause'backtracking f base (the'position + 1) gs environment backtracking'stack
+            backtracking'stack' = cause'backtracking f base (the'position + 1) gs query'vars backtracking'stack
 
             new'state =  state{ backtracking'stack = backtracking'stack'
                               , goal'stack = new'goal'stack
@@ -63,7 +65,7 @@ step state@State{ base
             head'goals = map (uncurry Unify) (zip args patterns')
             new'goal'stack = head'goals ++ body' ++ goal'stack
 
-            backtracking'stack' = cause'backtracking f base (the'position + 1) gs environment backtracking'stack
+            backtracking'stack' = cause'backtracking f base (the'position + 1) gs query'vars backtracking'stack
 
             new'state =  state{ backtracking'stack = backtracking'stack'
                               , goal'stack = new'goal'stack
@@ -85,12 +87,12 @@ step state@State{ base
           | otherwise = look'for f base (pos + 1)
 
 
-        cause'backtracking :: Functor -> [Predicate] -> Int -> [Goal] -> Env -> [([Goal], Int, Env)] -> [([Goal], Int, Env)]
-        cause'backtracking f base position goal'stack env backtracking'stack
+        cause'backtracking :: Functor -> [Predicate] -> Int -> [Goal] -> Map.Map String Value -> [([Goal], Int, Map.Map String Value)] -> [([Goal], Int, Map.Map String Value)]
+        cause'backtracking f base position goal'stack q'vars backtracking'stack
           = case look'for f (drop position base) position of
               Nothing -> backtracking'stack
               Just (_, future'position) ->
-                let backtracking'record = (goal'stack, future'position, env)
+                let backtracking'record = (goal'stack, future'position, q'vars)
                 in  backtracking'record : backtracking'stack
 
 {-  PROVE UNIFICATION -}
@@ -98,18 +100,18 @@ step state@State{ base
                 , backtracking'stack
                 , goal'stack = Unify value'l value'r : goal'stack
                 , position
-                , environment
+                -- , environment
+                , query'vars
                 , counter }
-  = case unify value'l value'r environment of
+  = case unify (value'l, value'r) goal'stack query'vars of
       Nothing ->
         -- could not unify
         -- this means that this goal, fails
         fail'and'backtrack state
-      Just new'env ->
+      Just (new'goal'stack, new'query'vars) ->
         -- they can be unified and the new'environment reflects that
         -- just return a new state with stack and env changed
-        succeed state { goal'stack
-                      , environment = new'env }
+        succeed state { goal'stack = new'goal'stack, query'vars = new'query'vars }
 
 
 succeed :: State -> Action State
@@ -132,8 +134,10 @@ fail'and'backtrack state@State{ backtracking'stack = backtrack'record : backtrac
   = step state{ backtracking'stack
               , goal'stack = new'goal'stack
               , position = pos
-              , environment = env }
-  where (new'goal'stack, pos, env) = backtrack'record
+              , query'vars = q'vars
+              -- , environment = env
+               }
+  where (new'goal'stack, pos, q'vars) = backtrack'record
 
 
 rename'all :: [Value] -> Int -> (Int, [Value])
@@ -178,163 +182,62 @@ rename'goal state (Unify val'l val'r)
     in  (state', Unify val'l' val'r')
 
 
-unify :: Value -> Value -> Env -> Maybe Env
-unify Wildcard _ env
-  = Just env
+unify :: (Value, Value) -> [Goal] -> Map.Map String Value -> Maybe ([Goal], Map.Map String Value)
+{-  DELETE  (basically) -}
+unify (Wildcard, _) goals query'vars = Just (goals, query'vars)
+unify (_, Wildcard) goals query'vars = Just (goals, query'vars)
 
-unify _ Wildcard env
-  = Just env
-
-unify (Atom a) (Atom b) env
-  | a == b = Just env
+{-  DELETE  -}
+unify (Atom a, Atom b) goals query'vars
+  | a == b = Just (goals, query'vars)
   | otherwise = Nothing
 
-unify (Struct (Fun{ name = name'l, args = args'l }))
-      (Struct (Fun{ name = name'r, args = args'r }))
-      env
-        | name'l == name'r && length args'l == length args'r = unify' args'l args'r
-        | otherwise = Nothing
-        where unify' :: [Value] -> [Value] -> Maybe Env
-              unify' lefts rights = foldl' unify'' (Just env) (zip lefts rights)
+{-  DECOMPOSE + CONFLICT  -}
+unify ( Struct Fun{ name = name'a, args = args'a }
+      , Struct Fun{ name = name'b, args = args'b })
+      goals query'vars
+  | name'a /= name'b || length args'a /= length args'b = Nothing  -- CONFLICT
+  | otherwise = Just (arg'goals ++ goals, query'vars)             -- DECOMPOSE
+  where
+    arg'goals :: [Goal]
+    arg'goals = zipWith Unify args'a args'b
 
-              unify'' :: Maybe Env -> (Value, Value) -> Maybe Env
-              unify'' Nothing _ = Nothing
-              unify'' (Just env) (left, right) = unify left right env
+{-  ELIMINATE + OCCURS  -}
+unify (Var a, value) goals query'vars
+  | (Var a) == value = Nothing          -- DELETE (both are variables)
+  | occurs a value = Nothing            -- OCCURS CHECK (the one on the right is not a variable so I can do the check!)
+  | otherwise = Just (substituted'goals, substituted'query'vars)
+  where
+    substituted'goals = map (subst'goal (a, value)) goals
+    substituted'query'vars = Map.map (subst'val (a, value)) query'vars
 
-unify (Var v'l) (Var v'r) env@(first, second)
-  | v'l == v'r = Just env
-  | otherwise = case (Map.member v'l first, Map.member v'r first) of
-                  (False, False) -> -- FRESH ~ FRESH
-                    let new'addr    = Map.size second
-                        new'first   = Map.insert v'l new'addr $! Map.insert v'r new'addr first
-                        new'second  = Map.insert new'addr (Fused $! Set.fromList [v'l, v'r]) second
-                    in  Just (new'first, new'second)
+    subst'goal :: (String, Value) -> Goal -> Goal
+    subst'goal substitution (Call fun) = Call substituted'fun
+      where substituted'fun = subst'functor substitution fun
+    subst'goal substitution (Unify val'a val'b) = Unify substituted'val'a substituted'val'b
+      where substituted'val'a = subst'val substitution val'a
+            substituted'val'b = subst'val substitution val'b
 
-                  (False, True) ->  -- FRESH ~ ?
-                    let addr = first Map.! v'r
-                    in  case second Map.! addr of
-                          Fused vars -> -- more fusing
-                            let new'first = Map.insert v'l addr first -- register the fresh variable
-                                new'second = Map.insert addr (Fused $! Set.insert v'l vars) second -- just adds it into the set of vars
-                            in  Just (new'first, new'second)
+    subst'val :: (String, Value) -> Value -> Value
+    subst'val (from, to) (Var name)
+      | name == from = to
+      | otherwise = Var name
+    subst'val _ (Atom name) = Atom name
+    subst'val substitution (Struct fun) = Struct (subst'functor substitution fun)
+    subst'val _ Wildcard = Wildcard
 
-                          Assigned val -> -- from assigned to fused'assigned
-                            if occurs val v'l env
-                            then Nothing
-                            else  let new'first = Map.insert v'l addr first -- register the fresh variable
-                                      new'second = Map.insert addr (Fused'Assigned (Set.fromList [v'l, v'r]) val) second -- promote to fused'assigned
-                                  in  Just (new'first, new'second)
+    subst'functor :: (String, Value) -> Functor -> Functor
+    subst'functor substitution Fun{ name, args } = Fun{ name, args = substituted'args }
+      where substituted'args = map (subst'val substitution) args
 
-                          Fused'Assigned vars val ->  -- more fusing
-                            if occurs val v'l env
-                            then Nothing
-                            else  let new'first = Map.insert v'l addr first -- register the fresh variable
-                                      new'second = Map.insert addr (Fused'Assigned (Set.insert v'l vars) val) second -- add into the set
-                                  in  Just (new'first, new'second)
+{-  SWAP  (because of the above equation, we assume the `value` not being a variable) -}
+unify (value, Var b) goals query'vars = unify (Var b, value) goals query'vars
 
-                  (True, False) ->  -- ? ~ FRESH
-                    unify (Var v'r) (Var v'l) env -- a little trick
-
-                  (True, True) ->   -- ? ~ ?
-                    let addr'l = first Map.! v'l
-                        addr'r = first Map.! v'r
-                    in  case (second Map.! addr'l, second Map.! addr'r) of
-                          (Fused vars'l, Fused vars'r) ->
-                            let lefts = Set.toList vars'l
-                                patch = Map.fromList $! map (\ l -> (l, addr'r)) lefts
-                                new'first = Map.union patch first
-                                new'second = Map.insert addr'r (Fused $! Set.union vars'l vars'r) second
-                            in  Just (new'first, new'second)
-
-                          (Fused vars'l, Assigned val'r) ->
-                            if any (\ var -> occurs val'r var env) vars'l
-                            then Nothing
-                            else  let lefts = Set.toList vars'l
-                                      patch = Map.fromList $! map (\ l -> (l, addr'r)) lefts
-                                      new'first = Map.union patch first
-                                      new'second = Map.insert addr'r (Fused'Assigned vars'l val'r) second
-                                  in  Just (new'first, new'second)
-
-                          (Fused vars'l, Fused'Assigned vars'r val'r) ->
-                            if any (\ var -> occurs val'r var env) vars'l
-                            then Nothing
-                            else  let lefts = Set.toList vars'l
-                                      patch = Map.fromList $! map (\ l -> (l, addr'r)) lefts
-                                      new'first = Map.union patch first
-                                      new'second = Map.insert addr'r (Fused'Assigned (Set.union vars'l vars'r) val'r) second
-                                  in  Just (new'first, new'second)
-
-                          (Assigned val'l, Assigned val'r) ->
-                            if occurs val'l v'r env || occurs val'r v'l env
-                            then Nothing
-                            else unify val'l val'r env
-                            -- NOTE: The thing is, even if it succeeds, I can't really reflect that in the Env.
-                            -- Because I do not subsitute variables within structs when some variable is assigned a value,
-                            -- those two things do not look alike.
-                            -- one might look like this: `foo(A, B, x, 1)` the other like: `foo(thing, X, X, 1)`
-                            -- Instead of just picking arbitrary one of them I do not pick at all.
-                            -- But I do believe that any choice would do.
-
-                          (Assigned val'l, Fused'Assigned vars'r val'r) ->
-                            if any (\ var -> occurs val'l var env) vars'r || occurs val'r v'l env
-                            then Nothing
-                            else unify val'l val'r env
-                            -- the same reasoning as above
-
-                          (Fused'Assigned vars'l val'l, Fused'Assigned vars'r val'r) ->
-                            if any (\ var -> occurs val'l var env) vars'r || any (\ var -> occurs val'r var env) vars'l
-                            then Nothing
-                            else unify val'l val'r env
-                            -- the same reasoning as above
-
-                          (_, _) -> unify (Var v'r) (Var v'l) env -- a little trick
-
-unify (Var v'l) value env@(first, second)
-  = case first Map.!? v'l of
-    Just addr ->  -- fused, assigned, or fused'assigned
-      case second Map.! addr of
-        Fused vars -> -- promote to fused'assigned
-          if any (\ var -> occurs value var env) vars
-          then Nothing
-          else  let new'second = Map.insert addr (Fused'Assigned vars value) second
-                in  Just (first, new'second)
-
-        Assigned value' ->  -- unify those two values, no new binding
-          if occurs value' v'l env
-          then Nothing
-          else unify value value' env
-
-        Fused'Assigned vars value' -> -- unify those two values, no new binding
-          if any (\ var -> occurs value' var env) vars
-          then Nothing
-          else unify value value' env
-
-    Nothing ->  -- a fresh variable
-      if occurs value v'l env
-      then Nothing
-      else  let new'addr = Map.size second
-                new'first = Map.insert v'l new'addr first
-                new'second = Map.insert new'addr (Assigned value) second
-            in  Just (new'first, new'second)
-
-unify value (Var v'r) env
-  = unify (Var v'r) value env -- a little trick
-
-unify _ _ _ = Nothing
+unify _ _ _ = Nothing   -- CONFLICT (for atoms and structs)
 
 
-occurs :: Value -> String -> Env -> Bool
-occurs (Var name) var'name env
-  | name == var'name = True
-  | otherwise = case lookup name env of
-                  Nothing -> False
-                  Just (Fused vars) -> Set.member var'name vars
-                  Just (Assigned val) -> occurs val var'name env
-                  Just (Fused'Assigned vars val) -> Set.member var'name vars || occurs val var'name env
-
-occurs (Atom _) _ _ = False
-
-occurs (Struct Fun{ args }) var'name env = any (\ v -> occurs v var'name env) args
-
-occurs Wildcard _ _
-  = False
+occurs :: String -> Value -> Bool
+occurs var'name (Var name) = var'name == name
+occurs var'name (Atom _) = False
+occurs var'name (Struct Fun{ args }) = any (occurs var'name) args
+occurs var'name Wildcard = False
