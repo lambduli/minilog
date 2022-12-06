@@ -39,8 +39,8 @@ Were we do that manually on a piece of paper with a pen, it might look something
 
 3) This can be done through *decomposition*. We break down the current goal into three smaller pieces:
 ```prolog
-  A = z,
-  B = N,
+  A = z
+  B = N
   B = N
 ```
 
@@ -49,7 +49,7 @@ Were we do that manually on a piece of paper with a pen, it might look something
     Assignments: `A = z`.
 
 ```prolog
-  B = N,
+  B = N
   B = N
 ```
 
