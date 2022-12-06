@@ -53,7 +53,7 @@ Were we do that manually on a piece of paper with a pen, it might look something
   B = N
 ```
 
-5) We now have two identical sub-goals. We will safe us some work and discharge both of them at the same time. The same as above, we just write it down:
+5) We now have two identical sub-goals. We will save us some work and discharge both of them at the same time. The same as above, we just write it down:
 
     Assignments: `A = z`, `B = N`.
 
@@ -61,7 +61,7 @@ Were we do that manually on a piece of paper with a pen, it might look something
 
 ----
 
-We are not done yet, however! One of the key features of logic langauges is the backtracking. That means we need to go back a little and see if we can satisfy the same goal in a different way. We need to do this for all potential paths through the *proof space*.
+We are not done yet, however! One of the key features of logic langauges is the backtracking. This means we need to go back a little and see if we can satisfy the same goal in a different way. We need to do this for all potential paths through the *proof space*.
 
 We go back to the step `2` and take an alternative path this time around.
 
@@ -460,6 +460,6 @@ A single step of the evaluation:
     - If there is, we reset our state according that backtracking record and pop it from the *backtracking stack*.
     - If there is not, we are done. The evaluation concluded.
 
-> Note about the renaming: We have omited the mention of the renaming. We suspect that the reader has been able to figure it out already but for the sake of the completeness - Any time we do sort of an instantiation of a predicate from the base, we rename all of the variables in it to completely new and unique names.
+> Note about the renaming: We have omited the mention of the renaming. We suspect that the reader has been able to figure it out already but for the sake of the completeness - any time we do any sort of instantiation on a predicate from the base, we rename all of the variables in it to completely new and unique names.
 
 
