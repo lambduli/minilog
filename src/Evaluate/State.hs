@@ -15,7 +15,7 @@ data Action a = Succeeded !a
               | Done
   deriving (Eq, Show)
 
--- TODO: Keep the original goal around.
+
 data State
   = State { base :: ![Predicate] -- knowledge base
           , query'vars :: !(Map.Map String Term)  -- the variables from the query

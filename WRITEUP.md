@@ -399,12 +399,67 @@ For the bookkeeping purposes (renaming variables to fresh names) we will also ne
 And to make the presentation of the success easier we also keep around a mapping from all the variables from the original query to the terms that the evaluation assigned to them.
 Thanks to that, the presentatin is just a matter of printing all the mappings.
 
+----
+
+All of this leads to the following Haskell data structure:
+```haskell
+data State
+  = State { base                :: [Predicate]
+
+          , position            :: Int
+          , goal'stack          :: [Goal]
+          , backtracking'stack  :: [([Goal], Int, Query'Mapping)]
+
+          , counter             :: Int
+          , query'vars          :: Query'Mapping }
+
+type Query'Mapping = Map.Map String Term
+```
+
+----
+
 
 ### Algorithm
 
 ((TODO: Write the full definition of the unification algo.))
 
-((TODO: Write the `step` algo.))
+#### Unification
 
-((TODO: Describe the idea behind backtracking.))
+The actual algorithm we will implement consists of the following rules:
+
+- unification of two identical terms is trivial
+- unification of two structs of the same name and the same arity leads to *decomposition* (+ the occurs check)
+- unification of two structs that do not satisfy the requirements above fails
+- unification of a variable and a term is used as a substitution on the rest of the goals (+ the occurs check)
+
+
+> The occurs check is a mechanics preventing unifite terms. It fails whenever we would try to unify a variable with a term featuring that variable.
+
+
+#### Step of the Evaluation
+
+With the unification as described above we can go on and describe the algorithm that drives the evaluation.
+
+A single step of the evaluation:
+
+- checks if there is a goal on top of the *goal stack*.
+  - If the goal is to **invoke** a predicate we search for a first potentially fitting predicate in the base. (One with the same name and the same arity.)
+    - If we find one and it is a *fact*, we replace the previous goal with an *unification* goal to unify the original goal (now shaped into a *struct*) with the head of that *fact* (which also is shaped into a *struct*).
+
+    - If we find one and it is a *rule*, we do the same as above **and** on top of that we put the *body* of the rule on the *goal stack* too. The order is - the unification on top then the body then whatever was already there.
+
+    - If we have not found one, we fail the current *goal stack*.
+
+  - If we have succeeded in searching for fitting predicate in the previous step, we also back-up our original *goal stack*, *position* and *free var query mapping* on top of the *backtracking stack* so that we can come back to it later.
+
+  - If the goal on top of the *goal stack* is to **unify** two things, we use the unification algorithm from the previous section. THe unification may apply substitution to our current *goal stack* and the *free var query mapping*.
+    - If the unification succeeds we obtain a new *goal stack* and a new *free var query mapping*.
+    If the unification fails, we fail the current *goal stack*.
+
+  - If there is no goal, this means that the previous step either failed or succeeded. We need to attempt backtracking. We check if there is something on the *backtracking stack*:
+    - If there is, we reset our state according that backtracking record and pop it from the *backtracking stack*.
+    - If there is not, we are done. The evaluation concluded.
+
+> Note about the renaming: We have omited the mention of the renaming. We suspect that the reader has been able to figure it out already but for the sake of the completeness - Any time we do sort of an instantiation of a predicate from the base, we rename all of the variables in it to completely new and unique names.
+
 

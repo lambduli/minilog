@@ -77,7 +77,7 @@ And here is an example of a valid query:
 - arithmetics (obviously)
 - strings
 - explicit or (`;`)
-- cuts
+- cuts (`!`)
 
 ## What is it for?
 
