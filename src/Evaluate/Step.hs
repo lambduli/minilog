@@ -129,8 +129,7 @@ fail'and'backtrack state@State{ backtracking'stack = backtrack'record : backtrac
   = step state{ backtracking'stack
               , goal'stack = new'goal'stack
               , position = pos
-              , query'vars = q'vars
-               }
+              , query'vars = q'vars }
   where (new'goal'stack, pos, q'vars) = backtrack'record
 
 
