@@ -328,7 +328,7 @@ So let us first give a few vague rules for unification before we explore any fur
 - A fresh variable unifies with anything.
 - A variable that has already been unified with something unifies with another thing only if the first thing and the new thing unify together.
 
-This should serve as a mental checkpoint before we go all in on the formal algorithm mentioned above.
+This should serve as a mental checkpoint before we go all in on the real algorithm mentioned above.
 
 ---
 
@@ -383,12 +383,28 @@ So it all depends on the representation that we chose for our machine state. Tha
 
 ### Machine State Representation
 
-We want a representation that is explicit enough - does not leave any part of the evaluation to be "implicitly" encoded in the implementation langauge - but is simple enough at the same time. We do not want to use complex data structures making the reasoning about or the re-implementation of Minilog more complicated in other langauges.
+We want a representation that is explicit enough - does not leave any part of the evaluation to be "implicitly" encoded in the implementation langauge - but is simple enough at the same time. We do not want to use complex data structures making the reasoning about or the re-implementation of Minilog more complicated than it needs to be.
 
 Fortunately, we will do with just a few basic data types that should be common enough not only to most programming languages but to any of the readers too.
 
+What our machine state needs to contain:
 
+- our base
+- a position in the base
+- a stack of goals to satisfy
+- a stack for backtracking
+
+For the bookkeeping purposes (renaming variables to fresh names) we will also need to carry some increment-only counter.
+
+And to make the presentation of the success easier we also keep around a mapping from all the variables from the original query to the terms that the evaluation assigned to them.
+Thanks to that, the presentatin is just a matter of printing all the mappings.
 
 
 ### Algorithm
+
+((TODO: Write the full definition of the unification algo.))
+
+((TODO: Write the `step` algo.))
+
+((TODO: Describe the idea behind backtracking.))
 
