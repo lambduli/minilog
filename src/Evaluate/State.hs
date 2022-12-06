@@ -8,25 +8,25 @@ import Term ( Goal, Term, Predicate )
 
 {-  The Action data structure is there
     to signalize what happened in the last step -}
-data Action a = Succeeded a
+data Action a = Succeeded !a
               | Failed
-              | Searching a
-              | Redoing a
+              | Searching !a
+              | Redoing !a
               | Done
   deriving (Eq, Show)
 
 -- TODO: Keep the original goal around.
 data State
-  = State { base :: [Predicate] -- knowledge base
-          , query'vars :: Map.Map String Term  -- the variables from the query
-          , backtracking'stack :: [([Goal], Int, Map.Map String Term)]
+  = State { base :: ![Predicate] -- knowledge base
+          , query'vars :: !(Map.Map String Term)  -- the variables from the query
+          , backtracking'stack :: ![([Goal], Int, Map.Map String Term)]
             -- a stack of things to try when the current
             -- goal fails or succeeds
 
-          , goal'stack :: [Goal]  -- goals to satisfy
-          , position :: Int -- position in the base
+          , goal'stack :: ![Goal]  -- goals to satisfy
+          , position :: !Int -- position in the base
 
-          , counter :: Int } -- for renaming variables
+          , counter :: !Int } -- for renaming variables
   deriving (Eq, Show)
 
 

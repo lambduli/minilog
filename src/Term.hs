@@ -3,23 +3,23 @@ module Term where
 import Data.List ( intercalate )
 
 
-data Goal = Call Struct
-          | Unify Term Term
+data Goal = Call !Struct
+          | Unify !Term !Term
   deriving (Eq)
 
 
-data Predicate  = Fact Struct
-                | Struct :- [Goal]
+data Predicate  = Fact !Struct
+                | !Struct :- ![Goal]
   deriving (Eq)
 
 
-data Struct = Struct{ name :: String, args :: [Term] }
+data Struct = Struct{ name :: !String, args :: ![Term] }
   deriving (Eq)
 
 
-data Term = Var String
-          | Atom String
-          | Compound Struct
+data Term = Var !String
+          | Atom !String
+          | Compound !Struct
           | Wildcard
   deriving (Eq)
 

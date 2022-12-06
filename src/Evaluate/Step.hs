@@ -30,7 +30,6 @@ step state@State{ backtracking'stack = record : backtracking'stack
         state' = state{ goal'stack = new'goal'stack
                       , position = pos
                       , query'vars = q'vars
-                      -- , environment = env
                       , backtracking'stack }
 
 {-  PROVE CALL  -}
@@ -39,7 +38,6 @@ step state@State{ base
                 , goal'stack = gs@(Call (f@Struct{ name, args }) : goal'stack)
                 , position
                 , query'vars
-                -- , environment
                 , counter }
   = case look'for f (drop position base) position of
       Nothing -> fail'and'backtrack state
