@@ -5,7 +5,7 @@ It's goal is to capture the essence of relational/logic programming.
 
 > For the implementation write up see: [the write up](./WRITEUP.md).
 
-It is very much a subset of Prolog, at least in terms of a syntax.
+It is very much a subset of Prolog, at least in terms of the syntax.
 The biggest (intended) difference in terms of a runtime behaviour is the strict
 `occurs` checking.
 Unlike Prolog, Minilog does not accept infinite terms.
@@ -89,8 +89,7 @@ It should not be more than an initial insight into the ideas behind concepts lik
 unification, proof search, that such a relational language does and backtracking
 in such a proof search.
 
-You could also say that the design of the implementation was chosen to be
-ver observable by default. Indeed, as the runtime is implemented
+You could also say that the design of the implementation was chosen to be observable by default. Indeed, as the runtime is implemented
 as a simple "stepping" interpreter, we can very much see "inside" the process.
 The write up goes into more detail on that topic.
 
