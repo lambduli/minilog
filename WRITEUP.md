@@ -37,6 +37,10 @@ Let us start with a simple example of a Minilog program:
 plus(z, N, N).
 plus(s(N), M, s(R)) :- plus(N, M, R).
 ```
+
+> Those two predicates describe addition operation on our representation of natural numbers.
+> Adding any number to zero equals to that original number and adding a non-zero number to anything is equal to adding a number one-smaller to that anything plus one.
+
 Now suppose that we want to prove a query `plus(A, B, B)`.
 
 > This reads: "What are two natural numbers whose sum is equal to the second one?"
@@ -61,7 +65,7 @@ Were we do that manually on a piece of paper with a pen, it might look something
   B = N
 ```
 
-4) We now have three *unification* goals. Let us start with the one at the top and observe that it is technically an *assignment*. We record this new information on the side of the paper (we just write it down) and discharge the *sub-goal*:
+4) We now have three *unification* goals. Let us start with the one at the top and observe that it is technically an *assignment*. We record this new information on the side of the paper (in our case - we just write it down) and discharge the *sub-goal*:
 
     Assignments: `A = z`.
 
@@ -82,7 +86,7 @@ We are not done yet, however! One of the key features of logic langauges is the 
 
 We go back to the step `2` and take an alternative path this time around.
 
-2) We keep looking for a predicate in the base that has the same name and arity as our goal. The second one fits that description too, so we try to unify our goal with the head of that predicate. On top of that, we also take the goals in the *rule*'s body and write them down too:
+2) We keep looking for a predicate in the base that has the same name and arity as our goal. The second one fits that description too, so we try to unify our goal with the head of that predicate. On top of that, we also take the goal in the *rule*'s body and add it to our collection of goals:
 ```prolog
   plus(A, B, B) = plus(s(N), M, s(R))
   plus(N, M, R)
@@ -206,14 +210,14 @@ The idea was to carry around an environment recording assignments of variables.
 
 This strategy is not inherently bad, it would work not only on paper but also as an underlying design for our *abstract machine*. It would have a couple of strong drawbacks, however. It would not be very efficient and the implementation would be a bit more involved than we would expect from a **simple** *abstract machine*.
 
-As a bonus, this approach get quite unwieldy quite quick.
+As a bonus, this approach gets quite unwieldy quite quick.
 
 For those reasons we leave this strategy behind and focus on a much more tractable one.
 
-Instead of recording those assignments in an environment, we apply them immediatelly like they are some sort of substitutition. To be more specific, any time we have a sequence of goals and the top one is in the shape `<variable> = <a term>`, we treat it as a substitution and apply it to the rest of the goals.
+Instead of recording those assignments in an environment, we apply them immediatelly like they are some sort of a substitutition. To be more specific, any time we have a sequence of goals and the top one is in the shape `<variable> = <term>`, we treat it as a substitution and apply it to the rest of the goals.
 
 This approach is part of the algorithm for unification introduced by [Martelli and Montanari](https://dl.acm.org/doi/10.1145/357162.357169).
-It is also nicely summed up in this [wikipedia acrticle](https://en.wikipedia.org/wiki/Unification_(computer_science)#A_unification_algorithm).
+It is also nicely summed up in this [wikipedia article](https://en.wikipedia.org/wiki/Unification_(computer_science)#A_unification_algorithm).
 
 We will get back to it in later sections.
 
@@ -223,13 +227,11 @@ We will get back to it in later sections.
 
 This section describes our way of representing terms and other syntactic forms of our langauge as simple Haskell data structures.
 
-We start with the representation of Minilog programs.
-
 ### Basic Terms
 
 #### Atoms
 
-Representing *atoms* is going to be trivial. The only thing that needs to be store is the atom's name.
+Representing *atoms* is going to be trivial. The only thing that needs to be stored is the atom's name.
 
 #### Variables
 
@@ -256,39 +258,55 @@ data Term = Var String
 
 data Struct = Struct{ name :: String, args :: [Term] }
 ```
+Alternatively, we can express it with a simple grammar:
+```
+Term    :=  Var
+        |   Atom
+        |   Struct
+        |   '_'
+
+Var     :=  [A-Z]([A-Z][a-z])*
+
+Atom    :=  [a-z]([A-Z][a-z])*
+
+Struct  :=  Atom '(' Terms ')'
+
+Terms   :=  Term
+        |   Term ',' Terms
+```
 
 ----
 
 ### Predicates
 
-What we call *predicate* is a more complicated form in the language. It is a way to define new relations. Our knowledge bases will consist of list of predicates.
+What we call a *predicate* is a bit more complicated form in the language. It is a way to define new relations. Our knowledge bases will consist many such predicates.
 
 A *Predicate* is either a *Fact* or a *Rule*.
 
 #### Facts
 
-A fact is syntactically very simple. It is predicate that does not have a body.
+A fact is syntactically very simple. It is predicate that does not have a body, only the head.
 For example, `id(I, I).` is a fact.
 
-We can observe that a fact is very similar to a compound term with the only difference being the fact that a fact is a predicate and as such it is always followed by a period.
+We can observe that a fact is very similar to a compound term with the only difference being the fact that a *fact* is a "sort of a declaration" and as such it is always followed by a period.
 
 In any case, we can take advantage of that fact when representing predicates in our implementation.
 
 #### Rules
 
-Rules are a little bit more complicated. They consist of two parts delimited by a symbol `:-`. The part on the left is basically a *fact* while the part on the right is called a *body*. The body of the rule is simply a non-empty list of *goals*.
+Rules are a little bit more complicated. They consist of two parts delimited by a symbol `:-`. The part on the left is basically a *fact* while the part on the right is called a *body*. The body of the rule is simply a non-empty list of *goals* separated by a comma (`,`) which means **AND** in Prolog.
 
-We will cover what exactly the *goal* is later. For now, we just say that the body might be a *predicate call* or a conjunction.
+We will cover what exactly the *goal* is later. For now, we just say that the body might be a single *predicate call* or a *conjunction* of those.
 
 ### Goals
 
-We have mentioned *goals* above. What we mean when we say that something is a goal is that it is a *term* that is understood as a proposition. Simply put, when we write the following query:
+We have mentioned the *goals* above. What we mean when we say that something is a goal is that it is a *term* that is understood as a proposition. Simply put, when we write the following query:
 ```prolog
 id(something, A).
 ```
 we say that `id(something, A)` is a goal. That is - we want it to be proved or disproved.
 
-In this sense, bodies of rules are indeed just goals. For the rule to succeed all the sub-goals in the body need to succeed, assuming that the *head* of the rule was unified with the original goal anway.
+In this sense, bodies of rules are indeed just goals. For the rule to succeed - all the sub-goals in the body need to succeed, assuming that the *head* of the rule was unified with the original goal anyway.
 
 Here is an example to further the point:
 ```prolog
@@ -312,6 +330,20 @@ data Predicate  = Fact Struct
 > Note about Goal: We will explain its two variants in greater detail in later sections about evaluation.
 
 > Note about syntax: We have used an infix constructor `(:-)` to represent rules. 
+
+Alternatively, we can express it using a simple grammar:
+```
+Goal        :=  Struct
+            |   Term '=' Term
+
+Predicate   :=  Struct '.'
+            |   Struct ':-' Body
+
+Body        :=  Goals '.'
+
+Goals       :=  Goal
+            |   Goal ',' Goals
+```
 
 ----
 
