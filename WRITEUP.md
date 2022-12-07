@@ -331,7 +331,7 @@ data Predicate  = Fact Struct
 
 > Note about syntax: We have used an infix constructor `(:-)` to represent rules. 
 
-Alternatively, we can express it using a simple grammar:
+Alternatively, we can express it with a simple grammar:
 ```
 Goal        :=  Struct
             |   Term '=' Term
@@ -361,7 +361,7 @@ But we have hinted that with our leading example already.
 
 In its core, the concept of unification is a really simple one.
 
-We have two things and we ask whether they can be "the same thing" under some specific circumstances.
+We have two things and we ask whether they can be "the same thing" and what would it take for them to be.
 
 Here is an example (the operator `=` means `unify with`):
 ```prolog
@@ -370,12 +370,19 @@ Here is an example (the operator `=` means `unify with`):
 
 The result of running such a query in Prolog will, of course, be positive. Simply because a variable like `A`, that is - a fresh one - can be unified with anything at all.
 
+So maybe a little bit more illustrative example would be:
+```prolog
+foo(A, something, X) = foo(whatever, B, B)
+```
+Those two terms can be "the same thing" if `A = whatever` and `B = X = something`.
+
+
 So let us first give a few vague rules for unification before we explore any further:
 
 - An atom unifies with an identical atom.
 - A struct unifies with a struct when they have the same name and the same arity and their arguments unify pairwise.
 - A fresh variable unifies with anything.
-- A variable that has already been unified with something unifies with another thing only if the first thing and the new thing unify together.
+- A variable that has already been unified with something, unifies with another thing only if the first thing and the new thing unify together.
 
 This should serve as a mental checkpoint before we go all in on the real algorithm mentioned above.
 
@@ -391,9 +398,9 @@ In this section we are going to explore the concepts of proof search and backtra
 The traversal of the state space is quite stright forward. We start with an initial goal and we search for a predicate in our knowledge base that would allow us to prove that goal.
 
 When we find such a predicate we have to see if our goal can unify with the head of the predicate. If it does and the predicate is a *fact*, we have found a way to satisfy the goal.
-If it is *rule* we have to attempt proving the body of the rule. Remember - bodies of rules are just goals.
+If it is *rule* we have to attempt proving the body of the rule. Remember - bodies of rules are just sequences of goals.
 
-Here is an example to help with making the point:
+Here is an example demonstrating the point:
 ```prolog
 ...
 
@@ -402,7 +409,7 @@ small(mouse).
 small(X) :- small(Y) , at_most_as_big_as(X, Y) .
 ```
 
-If our initial goal is `small(mouse)` we can see that the first predicate in the base does very much match the goal at hand. But as we should already know, the key feature of logic languages is backtracking.
+If our initial goal is `small(mouse)` we can see that the first predicate in the base does very much unify with the goal at hand. But as we should already know, the key feature of logic languages is backtracking.
 This means that even after the first predicate allows us to satisfy the goal, we still need to try to satisfy it in any other way that is possible.
 
 The head of the second predicate in the base also matches our goal.
@@ -413,7 +420,7 @@ So if we can satisfy the goals that make up its body, we can also prove that `mo
 
 The description above illustrates one important point - when our goal is a predicate invokation, we can approach satisfying it by viewing the invokation as a struct/compound term and see the heads of predicates the same way. Whenever we can unify those two terms (our goal and a predicate head) we have a potential way to satisfy the goal.
 
-This is quite important, because it allows us to use unification in this part of the process too. Later it will be aparent just how important and central unification is to the whole process of evaluation - **it is** the thing that does most parts of the evaluation.
+This is quite important, because it allows us to use unification in this part of the process too. Later it will be aparent just how important and central unification is to the whole process of evaluation - **it is** the thing that does most work for the evaluation.
 
 ----
 
@@ -423,9 +430,9 @@ We have already mentioned backtracking in the previous section. In this section 
 
 We can observe that in our small language backtracking should really only happen when we have a predicate invokation and we are searching for a fitting predicate in the base. We do backtrack by trying **all the fitting** predicates in the base for the current goal.
 
-There is no more to it than that. So if we are able to come back to a point where we have decided to try the first fitting predicate in the base and try to use another one, we would have a backtracking handled.
+There is no more to it than that. So if we are able to come back to a point where we have decided to try the first fitting predicate in the base and try to use another one, we would have a backtracking handled (and again after that one, of course).
 
-The only viable way to "come back to a past point" in our implementation is to store our machine state (or some relevants parts of it) somewhere until the current path is done being explored. When it eventually succeeds or fails we can "get back" to the stored one - doing backtracking.
+The only viable way to "come back to a past point" in our implementation is to store our machine state (or some relevant parts of it) somewhere until the current path is done being explored. When it eventually succeeds or fails we can "get back" to the stored one - doing backtracking.
 
 So it all depends on the representation that we chose for our machine state. That is precisely the topic of the next section.
 
