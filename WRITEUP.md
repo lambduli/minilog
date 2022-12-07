@@ -11,9 +11,23 @@ For more information on real-world implementation of logic programming langauges
 
 > This write up expects the reader to have been exposed to a language like Prolog. No advance knowledge of Prolog or logic programming is required - only a level that can be obtained in a couple hours on the internet.
 
-> We also expect that the reader understands [Peano Arithmetics](https://wiki.haskell.org/Peano_numbers) well enough to follow our examples containing addition and multiplication.
+----
+
+### [Peano Numbers](https://wiki.haskell.org/Peano_numbers)
+
+We use a representation of Natural Numbers that consists of two constructs - an atom for zero, called `z`, and a functor `s/1` for a successor of any natural number.
+
+Here is an example that speaks for itself:
+
+0 := `z`
+1 := `s(z)`
+2 := `s(s(z))`
+3 := `s(s(s(z)))`
+...
 
 ----
+
+## Leading Example
 
 Let us start with a simple example of a Minilog program:
 ```prolog
