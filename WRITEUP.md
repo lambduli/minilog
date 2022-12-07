@@ -478,11 +478,9 @@ type Query'Mapping = Map.Map String Term
 ### Algorithm
 
 In this section we give the (almost) full algorithm for the implementation of the machine in a pseudocode.
-It is split in two parts, one for unification, one for a single step of the machine evaluation.
+It is split in two parts, one for unification and one for a single step of the machine evaluation.
 
 #### Step of the Evaluation
-
-With the unification as described above we can go on and describe the algorithm that drives the evaluation.
 
 Here is what the algorithm does on every step:
 
@@ -556,7 +554,7 @@ to attempt backtracking:
       - we fail
 ```
 
-The algorithm above omits two small details. It does not concern itself with the details of renaming predicates or how should we ensure that we always use a new name. The reader is expected to fill in that themself. The second detail omited is the aforementioned mapping from variables of the original query to the terms to-them-assigned. This is also trivial and should not be a problem for a reader.
+The algorithm above omits two small details. It does not concern itself with the details of renaming predicates or how should we ensure that we always use a new name. The reader is expected to fill in that themself. The second detail omited is the aforementioned mapping from variables of the original query to the terms to-them-assigned. This is also trivial and should not be a problem for the reader.
 
 
 #### Unification
