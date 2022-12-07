@@ -10,7 +10,7 @@ The biggest (intended) difference in terms of a runtime behaviour is the strict
 `occurs` checking.
 Unlike Prolog, Minilog does not accept infinite terms.
 
-This means that the following snippet will succeedin Prolog but not in Minilog:
+This means that the following snippet will succeed in Prolog but not in Minilog:
 
 ```prolog
 X = foo(X).
@@ -42,7 +42,7 @@ In Minilog you have:
 
   `plus(s(N), M, s(R)) :- plus(N, M, R).`
 
-- Conjunction
+- Conjunctions
 
   `times(N, M, R), plus(R, M, A).`
 
@@ -82,12 +82,11 @@ And here is an example of a valid query:
 ## What is it for?
 
 The implementation is just a complement of the [write up](./WRITEUP.md).
-The goal of this project is to offer an introductory level almost tutorial-like description of an implementation design for such a language.
+The goal of this project is to offer an introductory level almost tutorial-like description of an implementation of a simple abstract machine for a logic language.
 
 The design of the implementation is not aming to represent a practical implementation of a relational programming language.
 It should not be more than an initial insight into the ideas behind concepts like
-unification, proof search, that such a relational language does and backtracking
-in such a proof search.
+unification, proof search that happens during the evaluation and a backtracking in such a proof search.
 
 You could also say that the design of the implementation was chosen to be observable by default. Indeed, as the runtime is implemented
 as a simple "stepping" interpreter, we can very much see "inside" the process.
