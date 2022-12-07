@@ -421,45 +421,112 @@ type Query'Mapping = Map.Map String Term
 
 ### Algorithm
 
-((TODO: Write the full definition of the unification algo.))
-
-#### Unification
-
-The actual algorithm we will implement consists of the following rules:
-
-- unification of two identical terms is trivial
-- unification of two structs of the same name and the same arity leads to *decomposition* (+ the occurs check)
-- unification of two structs that do not satisfy the requirements above fails
-- unification of a variable and a term is used as a substitution on the rest of the goals (+ the occurs check)
-
-
-> The occurs check is a mechanics preventing unifite terms. It fails whenever we would try to unify a variable with a term featuring that variable.
-
+In this section we give the (almost) full algorithm for the implementation of the machine in a pseudocode.
+It is split in two parts, one for unification, one for a single step of the machine evaluation.
 
 #### Step of the Evaluation
 
 With the unification as described above we can go on and describe the algorithm that drives the evaluation.
 
-A single step of the evaluation:
+Here is what the algorithm does on every step:
 
-- checks if there is a goal on top of the *goal stack*.
-  - If the goal is to **invoke** a predicate we search for a first potentially fitting predicate in the base. (One with the same name and the same arity.)
-    - If we find one and it is a *fact*, we replace the previous goal with an *unification* goal to unify the original goal (now shaped into a *struct*) with the head of that *fact* (which also is shaped into a *struct*).
+```
+machine state MS consisting of:
+- a goal stack GS
+- a base B
+- a position of some predicate in base P
+- a backtracking stack BS
 
-    - If we find one and it is a *rule*, we do the same as above **and** on top of that we put the *body* of the rule on the *goal stack* too. The order is - the unification on top then the body then whatever was already there.
+Each step is given a machine state MS and is expected to return a machine state MS'.
+```
 
-    - If we have not found one, we fail the current *goal stack*.
+```
+on each step do:
+  - inspect the goal stack GS:
 
-  - If we have succeeded in searching for fitting predicate in the previous step, we also back-up our original *goal stack*, *position* and *free var query mapping* on top of the *backtracking stack* so that we can come back to it later.
+    - on top of the goal stack GS there is a goal G to invoke a predicate, then:
 
-  - If the goal on top of the *goal stack* is to **unify** two things, we use the unification algorithm from the previous section. THe unification may apply substitution to our current *goal stack* and the *free var query mapping*.
-    - If the unification succeeds we obtain a new *goal stack* and a new *free var query mapping*.
-    If the unification fails, we fail the current *goal stack*.
+      - starting at the position P, search the base for the first predicate with the same name and arity as G; if:
+        - we find one, then:
+          - we check if that predicate is:
+            - a fact F at the position P_CURRENT, then:
+              - pop the goal G
+              - set the position P to 0
+              - rename all the variables in F to unique names, obtaining F_RENAMED
+              - create a new goal NG being (G = F1_RENAMED)
+              - push NG on top of the goal stack.
+                    
 
-  - If there is no goal, this means that the previous step either failed or succeeded. We need to attempt backtracking. We check if there is something on the *backtracking stack*:
-    - If there is, we reset our state according that backtracking record and pop it from the *backtracking stack*.
-    - If there is not, we are done. The evaluation concluded.
+            - a rule R at the position P_CURRENT, then:
+              - pop the goal G
+              - set the position P to 0
+              - rename all the variables in the R to unique names, obtaining R_RENAMED
+              - push each sub-goal in the body of the R_RENAMED on top of the goal stack (first sub-goal in the body goes last)
+              - create a new goal NG being (G = H_RENAMED) where H_RENAMED is the head of the R_RENAMED
+              - push NG on top of the goal stack
 
-> Note about the renaming: We have omited the mention of the renaming. We suspect that the reader has been able to figure it out already but for the sake of the completeness - any time we do any sort of instantiation on a predicate from the base, we rename all of the variables in it to completely new and unique names.
+          - search the base for the next predicate after P_CURRENT, with the same name and arity as G; if:
+            - there is one at the position P_NEXT, then:
+              - create a backtracking record BR consisting of the original goal stack GS and a position P_NEXT
+              - push BR on top of the backtracking stack BS
+          
+            - there is none, then we do not change the backtracking stack BS
+
+        - there is no fitting predicate; then:
+          - we attempt backtracking
+
+    - on top of the goal stack GS there is a goal G to unify two terms; then:
+      - we use the unification algorithm described below, it results in:
+
+        - a success - it produces a substitution/mapping SUB from variables to terms and a goal stack GS_UNIF, we do:
+          - apply SUB to GS obtaining a new goal stack GS_SUBSTITUTED
+          - concatenate GS_UNIF with GS_SUBSTITUTED obtaining GS_NEW
+          - we set GS to GS_NEW
+
+        - a failure - then we attempt backtracking
+
+    - the goal stack GS is empty; we attempt backtracking.
 
 
+to attempt backtracking:
+  inspect the backtracking stack BS:
+
+    - on top of the backtracking stack BS there is a backtracking record BR; then:
+      - set the position to the P_NEXT from the record BR
+      - set the goal stack to the GS from the record BR
+      - run a step of the computation
+
+    - the backtracking stack BS is empty; then:
+      - we fail
+```
+
+The algorithm above omits two small details. It does not concern itself with the details of renaming predicates or how should we ensure that we always use a new name. The reader is expected to fill in that themself. The second detail omited is the aforementioned mapping from variables of the original query to the terms to-them-assigned. This is also trivial and should not be a problem for a reader.
+
+
+#### Unification
+
+The unification algorithm takes two arguments and either succeeds or fails.
+If it succeeds, it produces a substitution/mapping from variables to terms and a stack of new goals.
+
+The following is the algorithm for the unification:
+
+```
+two terms unify by these rules:
+  - unification of two identical terms succeeds with an empty substitution and an empty goal stack
+
+  - unification of two structs S_L and S_R of the same name and the same arity N is done through decomposition:
+    - for each pair of arguments to S_L and S_R - ARG_L_n and ARG_R_n - we create a new unification goal UG being ARG_L_n = ARG_R_n, together we call it ARG_GS
+    - we succeed with an empty substitution and a goal stack ARG_GS
+
+  - unification of two structs that do not have the same name and the same arity fails
+
+  - unification of a variable and a term satisfying an occurs check is used as a substitution SUB (<var> -> <term>)
+    - we succeed with a substitution SUB and an empty goal stack
+
+  - unification of a variable and a term failing an occurs check fails
+
+
+occurs check for a variable V and a term T fails when:
+  - the term T is a compound term with arguments ARGS and for any ARG_n from ARGS the occurs check for V and ARG_n fails
+  - the term T is a variable equal to the V (the same name)
+```
