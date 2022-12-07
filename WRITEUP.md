@@ -431,7 +431,7 @@ With the unification as described above we can go on and describe the algorithm 
 Here is what the algorithm does on every step:
 
 ```
-machine state MS consisting of:
+machine state MS consists of:
 - a goal stack GS
 - a base B
 - a position of some predicate in base P
