@@ -17,11 +17,14 @@ For more information on real-world implementation of logic programming langauges
 
 We use a representation of Natural Numbers that consists of two constructs - an atom for zero, called `z`, and a functor `s/1` for a successor of any natural number.
 
-Here is an example that speaks for itself:
+Here is a showcase that speaks for itself:
 
 0 := `z`
+
 1 := `s(z)`
+
 2 := `s(s(z))`
+
 3 := `s(s(s(z)))`
 ...
 
