@@ -9,7 +9,7 @@ While the main focus of the design is not efficiency and near-native speed, our 
 
 For more information on real-world implementation of logic programming langauges see [Warren Abstract Machine](https://en.wikipedia.org/wiki/Warren_Abstract_Machine).
 
-> This write up expects the reader to have been exposed to a language like Prolog. No advance knowledge of Prolog or logic programming is required - only a level that can be obtained in a couple hours on the internet.
+> This write up expects the reader to have been exposed to a language like [Prolog](https://en.wikipedia.org/wiki/Prolog). No advance knowledge of Prolog or logic programming is required - only a level that can be obtained in a couple of hours on the internet.
 
 ----
 
@@ -26,6 +26,7 @@ Here is a showcase that speaks for itself:
 2 := `s(s(z))`
 
 3 := `s(s(s(z)))`
+
 ...
 
 ----
