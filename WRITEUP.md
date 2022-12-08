@@ -201,7 +201,8 @@ We could read it as: "Which two natural numbers (where the second one is not sma
 
 The answer is `None!` - there is no way to add two natural numbers together and end up with a result smaller than one of those numbers.
 
-This is not a fault of Prolog/Minilog, our definition of `plus` is simply not compatible with all the different *modes* in which we can invoke it in logic programming environment.
+This is a direct consequence of the search strategy Prolog and by extension Minilog uses - the [Depth First Search](https://en.wikipedia.org/wiki/Depth-first_search).
+
 
 ----
 
