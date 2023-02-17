@@ -92,7 +92,7 @@ You could also say that the design of the implementation was chosen to be observ
 as a simple "stepping" interpreter, we can very much see "inside" the process.
 The write up goes into more detail on that topic.
 
-The goal of the project is not to be a rigorous introduction into the matter! At best it should serve as a toy-like demonstration. Similar to when a math or physics teacher reaches for a vast (but still valid) simplification to make some complicated sounding concept more approachable.
+The goal of the project is not to be a rigorous introduction into the matter! At best it should serve as a toy-like demonstration; similar to when a math or physics teacher reaches for a vast (but still valid) simplification to make some complicated sounding concept more approachable.
 
 
 ## How can you use it?
