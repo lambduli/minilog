@@ -292,7 +292,7 @@ For example, `id(I, I).` is a fact.
 
 We can observe that a fact is very similar to a compound term with the only difference being the fact that a *fact* is a "sort of a declaration" and as such it is always followed by a period.
 
-In any case, we can take advantage of that fact when representing predicates in our implementation.
+In any case, we can take advantage of that similarity when representing predicates in our implementation.
 
 #### Rules
 
