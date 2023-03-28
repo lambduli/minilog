@@ -455,7 +455,7 @@ What our machine state needs to contain:
 For the bookkeeping purposes (renaming variables to fresh names) we will also need to carry some increment-only counter.
 
 And to make the presentation of the success easier we also keep around a mapping from all the variables from the original query to the terms that the evaluation assigned to them.
-Thanks to that, the presentatin is just a matter of printing all the mappings.
+Thanks to that, the presentation is just a matter of printing all the mappings.
 
 ----
 
