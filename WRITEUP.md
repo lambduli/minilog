@@ -281,7 +281,7 @@ Terms   :=  Term
 
 ### Predicates
 
-What we call a *predicate* is a bit more complicated form in the language. It is a way to define new relations. Our knowledge bases will consist many such predicates.
+What we call a *predicate* is a bit more complicated form in the language. It is a way to define new relations. Our knowledge base will consist of many such predicates.
 
 A *Predicate* is either a *Fact* or a *Rule*.
 
