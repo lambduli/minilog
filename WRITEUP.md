@@ -202,7 +202,7 @@ We could read it as: "Which two natural numbers (where the second one is not sma
 
 The answer is `None!` - there is no way to add two natural numbers together and end up with a result smaller than one of those numbers.
 
-This is a direct consequence of the search strategy Prolog and by extension Minilog uses - the [Depth First Search](https://en.wikipedia.org/wiki/Depth-first_search).
+The fact that the process diverges at this point, is a direct consequence of the search strategy Prolog and by extension Minilog uses - the [Depth First Search](https://en.wikipedia.org/wiki/Depth-first_search).
 
 
 ----
