@@ -420,7 +420,7 @@ So if we can satisfy the goals that make up its body, we can also prove that `mo
 
 ----
 
-The description above illustrates one important point - when our goal is a predicate invocation, we can approach satisfying it by viewing the invokation as a struct/compound term and see the heads of predicates the same way. Whenever we can unify those two terms (our goal and a predicate head) we have a potential way to satisfy the goal.
+The description above illustrates one important point - when our goal is a predicate invocation, we can approach satisfying it by viewing the invocation as a struct/compound term and see the heads of predicates the same way. Whenever we can unify those two terms (our goal and a predicate head) we have a potential way to satisfy the goal.
 
 This is quite important, because it allows us to use unification in this part of the process too. Later it will be aparent just how important and central unification is to the whole process of evaluation - **it is** the thing that does most work for the evaluation.
 
