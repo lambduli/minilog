@@ -430,7 +430,7 @@ This is quite important, because it allows us to use unification in this part of
 
 We have already mentioned backtracking in the previous section. In this section we will discuss it a little bit more.
 
-We can observe that in our small language backtracking should really only happen when we have a predicate invokation and we are searching for a fitting predicate in the base. We do backtrack by trying **all the fitting** predicates in the base for the current goal.
+We can observe that in our small language backtracking should really only happen when we have a predicate invocation and we are searching for a fitting predicate in the base. We do backtrack by trying **all the fitting** predicates in the base for the current goal.
 
 There is no more to it than that. So if we are able to come back to a point where we have decided to try the first fitting predicate in the base and try to use another one, we would have a backtracking handled (and again after that one, of course).
 
