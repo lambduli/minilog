@@ -586,3 +586,5 @@ occurs check for a variable V and a term T fails when:
   - the term T is a compound term with arguments ARGS and for any ARG_n from ARGS the occurs check for V and ARG_n fails
   - the term T is a variable equal to the V (the same name)
 ```
+
+This concludes the writeup.
