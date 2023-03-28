@@ -393,7 +393,7 @@ This should serve as a mental checkpoint before we go all in on the real algorit
 
 ### Proof Search with Backtracking
 
-In this section we are going to explore the concepts of proof search and backtracking very briefly. We will not go into a much detail simply because the key element of our approach will rely on the specific representation of a state of our `machine`.
+In this section we are going to explore the concepts of proof search and backtracking very briefly. We will not go into a much detail simply because the key element of our approach will rely on the specific representation of the state of our `machine`.
 
 #### Proof Search
 
