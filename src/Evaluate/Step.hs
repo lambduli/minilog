@@ -197,8 +197,8 @@ unify ( Compound Struct{ name = name'a, args = args'a }
 
 {-  ELIMINATE + OCCURS  -}
 unify (Var a, value) goals query'vars
-  | (Var a) == value = Nothing          -- DELETE (both are variables)
-  | occurs a value = Nothing            -- OCCURS CHECK (the one on the right is not a variable so I can do the check!)
+  | (Var a) == value = Just (goals, query'vars) -- DELETE (both are variables)
+  | occurs a value = Nothing                    -- OCCURS CHECK (the one on the right is not a variable so I can do the check!)
   | otherwise = Just (substituted'goals, substituted'query'vars)
   where
     substituted'goals = map (subst'goal (a, value)) goals

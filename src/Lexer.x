@@ -2,7 +2,7 @@
 module Lexer ( lexer, read'token, use'lexer, eval'parser, Lexer(..) ) where
 
 import Control.Monad.State
-import Control.Monad.Error ( throwError )
+import Control.Monad.Except ( throwError )
 
 import Data.Word ( Word8 )
 import Data.Char ( ord )

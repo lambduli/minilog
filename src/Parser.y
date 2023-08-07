@@ -56,15 +56,15 @@ Body          ::  { [Goal] }
               :   Goals '.'                 { $1 }
 
 
-Struct       ::  { Struct }
+Struct        ::  { Struct }
               :   ATOM '(' Terms ')'        { Struct{ name = $1, args = $3 } }
 
 
-Terms      ::  { [Term] }
+Terms         ::  { [Term] }
               :   Term                      { [ $1 ] }
               |   Term ',' Terms            { $1 : $3 }
 
-Term       ::  { Term }
+Term          ::  { Term }
               :   VAR                       { Var $1 }
               |   ATOM                      { Atom $1 }
               |   Struct                    { Compound $1 }
