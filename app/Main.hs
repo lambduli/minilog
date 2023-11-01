@@ -72,6 +72,10 @@ repl old'state = do
           new'state = load'base new'base old'state
       repl new'state
 
+    ':' : _ -> do
+      putStrLn "I don't know this command, sorry."
+      repl old'state
+
     _ -> do
       let goals = parse'query str
           new'state = set'goal goals old'state
@@ -83,22 +87,29 @@ try'to'prove state = do
     Succeeded s -> do
       case step s of
         Redoing state' -> do
-          putStrLn $! intercalate "\n" $! map (\ (k, v) -> k ++ " = " ++ show v) $! Map.toList (query'vars s)
+          let q'vars = query'vars s
+          let result =  if Map.null q'vars
+                        then "True"
+                        else intercalate "\n" $! map (\ (k, v) -> k ++ " = " ++ show v) $! Map.toList q'vars
+          putStrLn result
           user'input <- getLine
           case user'input of
             ":next" -> do
-              putStrLn ";"
+              putStrLn "  or\n"
               try'to'prove state'
             ":done" -> do
               putStrLn "."
               repl state'
             _ -> do
-              -- putStrLn "I have no idea what that's supposed to mean. I am gonna backtrack anyway."
-              putStrLn ";"
+              putStrLn "  or\n"
               try'to'prove state'
 
         Done -> do
-          putStrLn $! intercalate "\n" (map (\ (k, v) -> k ++ " = " ++ show v) (Map.toList (query'vars s))) ++ " ."
+          let q'vars = query'vars s
+          let result =  if Map.null q'vars
+                        then "True"
+                        else intercalate "\n" $! map (\ (k, v) -> k ++ " = " ++ show v) $! Map.toList q'vars
+          putStrLn result
           repl s
 
         _ -> error "should never happen"
@@ -120,7 +131,7 @@ try'to'prove state = do
       -- or if I should just put `.` right away.
 
     Failed -> do
-      putStrLn "false."
+      putStrLn "False."
       repl state
 
     Searching s -> do

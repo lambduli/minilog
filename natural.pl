@@ -1,2 +1,2 @@
-nat(s(N)) :- nat(N).
 nat(z).
+nat(s(N)) :- nat(N).
