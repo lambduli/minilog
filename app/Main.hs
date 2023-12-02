@@ -68,18 +68,30 @@ repl old'state = do
     ':' : 'l' : 'o' : 'a' : 'd' : file'path -> do
       file'handle <- openFile (trim file'path) ReadMode
       file'content <- hGetContents file'handle
-      let new'base = parse'base file'content
-          new'state = load'base new'base old'state
-      repl new'state
+      case parse'base file'content of
+        Left (err, col) -> do
+          let padding = take (3 + col - 1) $! repeat ' '
+          putStrLn $! padding ++ "^"
+          putStrLn err
+          repl old'state
+        Right new'base -> do
+          let new'state = load'base new'base old'state
+          repl new'state
 
     ':' : _ -> do
       putStrLn "I don't know this command, sorry."
       repl old'state
 
     _ -> do
-      let goals = parse'query str
-          new'state = set'goal goals old'state
-      try'to'prove new'state
+      case parse'query str of
+        Left (err, col) -> do
+          let padding = take (3 + col - 1) $! repeat ' '
+          putStrLn $! padding ++ "^"
+          putStrLn err
+          repl old'state
+        Right goals -> do
+          let new'state = set'goal goals old'state
+          try'to'prove new'state
 
 try'to'prove :: State -> IO ()
 try'to'prove state = do

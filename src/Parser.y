@@ -1,13 +1,18 @@
 {
+{-# LANGUAGE FlexibleContexts #-}
+
 module Parser ( parse'base, parse'query ) where
 
-import Control.Monad.Error
+import Control.Monad.Except ( throwError )
 import Control.Monad.State
+import Data.Either.Extra ( mapRight )
 
-import Lexer ( lexer, eval'parser, Lexer(..) )
 import Token ( Token )
-import Token qualified as Token
-import Term ( Term(..), Struct(..), Predicate(..), Goal(..) )
+import Token qualified
+
+import Lexer
+
+import Term
 
 }
 
@@ -82,17 +87,19 @@ Goal          ::  { Goal }
 
 {
 
-parse'base :: String -> [Predicate]
-parse'base source = eval'parser parseBase source
+parse'base :: String -> Either (String, Int) [Predicate]
+parse'base source = mapRight fst $! eval'parser parseBase source
 
 
-parse'query :: String -> [Goal]
-parse'query source = eval'parser parseBody source
+parse'query :: String -> Either (String, Int) [Goal]
+parse'query source = mapRight fst $! eval'parser parseBody source
 
 
 parseError _ = do
-  -- col'no <- gets (inpColumn . lexerInput)
-  -- l'no <- gets (inpLine . lexerInput)
-  -- state <- get
-  error $ "Parse error on line " -- ++ show l'no ++ ", column " ++ show col'no ++ "." ++ "  " ++ show state
+  col'no <- gets (ai'col'no . lexer'input)
+  l'no <- gets (ai'line'no . lexer'input)
+  last'char <- gets (ai'last'char . lexer'input)
+  state <- get
+  throwError ("Parse error near character `" ++ [last'char] ++ "' on line " ++ show l'no ++ ", column " ++ show col'no ++ ".", col'no)
+
 }
