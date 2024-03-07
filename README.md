@@ -1,7 +1,7 @@
 # Minilog
 
 Minilog is a very small programming language implementation.
-It's goal is to capture the essence of relational/logic programming.
+It's goal is to capture the essence of logic programming.
 
 > For the implementation write up see: [the write up](./WRITEUP.md).
 
@@ -84,8 +84,8 @@ And here is an example of a valid query:
 The implementation is just a complement of the [write up](./WRITEUP.md).
 The goal of this project is to offer an introductory level almost tutorial-like description of an implementation of a simple abstract machine for a logic language.
 
-The design of the implementation is not aming to represent a practical implementation of a relational programming language.
-It should not be more than an initial insight into the ideas behind concepts like
+The design of the implementation is not aming to represent a practical implementation of a logic programming language.
+It should not be considered more than an initial exposition to the ideas behind concepts like
 unification, proof search that happens during the evaluation and a backtracking in such a proof search.
 
 You could also say that the design of the implementation was chosen to be observable by default. Indeed, as the runtime is implemented
