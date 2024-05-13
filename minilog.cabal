@@ -28,7 +28,7 @@ library
     default-extensions: NamedFieldPuns ImportQualifiedPost BangPatterns
     build-depends:
         array,
-        base >=4.7 && <5,
+        base ^>=4.19.0.0,
         containers >=0.6.2.1,
         directory,
         extra,
@@ -46,6 +46,6 @@ executable minilog
     ghc-options:        -Wall
     build-depends:
         minilog,
-        base ^>=4.17.0.0,
+        base ^>=4.19.0.0,
         containers >=0.6.2.1,
         extra >=1.7.12
